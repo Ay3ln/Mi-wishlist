@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi lista de deseos</title>
+  <style>
+    :root {
+      --ink: #4b3a43;
+      --muted: #817782;
+      --paper: #fffaf5;
+      --lavender: #eee5f1;
+      --lilac: #c9afd1;
+      --coral: #e8a096;
+      --yellow: #f1cf87;
+      --line: #eadde2;
+      --shadow: 0 22px 60px rgba(75, 58, 67, .14);
+    }
+
+    @font-face {
+      font-family: "Smile Moon";
+      src: url("Smile Moon.otf") format("opentype");
+      font-display: swap;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background: #F8F4E8;
+      font-family: "Smile Moon", cursive;
+      overflow-x: hidden;
+    }
+
+    body::before, body::after {
+      display: none;
+    }
+
+    .page {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 54px 0 80px;
+    }
+
+    header { text-align: center; }
+
+    .share-button {
+      position: fixed;
+      z-index: 5;
+      top: 18px;
+      right: 20px;
+      padding: 10px 14px;
+      border: 3px solid #4b3a43;
+      border-radius: 12px;
+      background: #a9cfe0;
+      color: #4b3a43;
+      cursor: pointer;
+      font: inherit;
+      font-size: .76rem;
+      font-weight: 500;
+      box-shadow: 4px 4px 0 #4b3a43;
+    }
+
+    .share-button:hover { transform: translate(-1px, -1px); }
+
+    .profile-edit-button {
+      position: fixed;
+      z-index: 5;
+      top: 18px;
+      left: 20px;
+      padding: 10px 14px;
+      border: 3px solid #4b3a43;
+      border-radius: 12px;
+      background: #b7c7a3;
+      color: #4b3a43;
+      cursor: pointer;
+      font: inherit;
+      font-size: .76rem;
+      font-weight: 500;
+      box-shadow: 4px 4px 0 #4b3a43;
+    }
+
+    .profile-edit-button:hover { transform: translate(-1px, -1px); }
+
+    body.view-only .profile-edit-button,
+    body.view-only .share-button,
+    body.view-only .editor-panel,
+    body.view-only .upload {
+      display: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--coral);
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before, .eyebrow::after {
+      width: 25px;
+      height: 2px;
+      border-radius: 99px;
+      background: currentColor;
+      content: "";
+    }
+
+    h1 {
+      margin: 15px 0 2px;
+      font-family: "Smile Moon", cursive;
+      font-size: clamp(2.7rem, 7vw, 5.4rem);
+      font-weight: 500;
+      letter-spacing: -.06em;
+      line-height: .95;
+    }
+
+    .title-gif {
+      display: block;
+      width: min(680px, 100%);
+      height: clamp(155px, 23vw, 245px);
+      margin: 0 auto;
+      border: 0;
+      border-radius: 0;
+      object-fit: contain;
+      object-position: center;
+      background: transparent;
+      filter: drop-shadow(0 12px 18px rgba(51, 42, 99, .14));
+    }
+
+    .guide-tagline {
+      position: relative;
+      z-index: 1;
+      margin: -76px auto 28px;
+      color: var(--muted);
+      font-family: "Smile Moon", cursive;
+      font-size: clamp(1rem, 2.2vw, 1.25rem);
+      font-style: italic;
+    }
+
+    .create-guide {
+      display: inline-block;
+      width: min(170px, 50vw);
+      aspect-ratio: 1.75;
+      margin: 0 auto 32px;
+      padding: 18px 28px;
+      border: 4px solid #4b3a43;
+      border-radius: 50%;
+      background: #d8a8c5;
+      color: #4b3a43;
+      cursor: pointer;
+      font: inherit;
+      font-size: clamp(.82rem, 2.5vw, 1.25rem);
+      font-weight: 500;
+      line-height: 1;
+      box-shadow: 5px 5px 0 rgba(75, 58, 67, .22);
+      transition: transform .2s ease;
+    }
+
+    .create-guide:hover { transform: translate(-2px, -2px); }
+
+    .intro {
+      max-width: 470px;
+      margin: 0 auto 38px;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+
+    .id-card {
+      display: grid;
+      grid-template-columns: 190px 1fr 170px;
+      gap: 27px;
+      align-items: center;
+      width: min(850px, 100%);
+      min-height: 285px;
+      margin: 0 auto 52px;
+      padding: 28px 32px;
+      position: relative;
+      overflow: hidden;
+      border: 5px solid #24191d;
+      border-radius: 30px;
+      background: #dbe3f0;
+      box-shadow: 7px 7px 0 #24191d;
+    }
+
+    .id-card::before {
+      position: absolute;
+      inset: 0 0 auto;
+      height: 0;
+      content: "";
+    }
+
+    .photo-wrap { text-align: center; }
+
+    .photo {
+      display: grid;
+      width: 150px;
+      height: 178px;
+      margin: 0 auto 11px;
+      overflow: hidden;
+      place-items: center;
+      border: 5px solid #24191d;
+      border-radius: 14px;
+      background: #f4f0dc;
+      color: #24191d;
+      font-family: "Smile Moon", cursive;
+      font-size: 4.2rem;
+      font-weight: 700;
+    }
+
+    .photo img {
+      display: none;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo.has-image img { display: block; }
+    .photo.has-image .photo-placeholder { display: none; }
+
+    .upload {
+      display: inline-block;
+      padding: 8px 12px;
+      border: 3px solid #4b3a43;
+      border-radius: 12px;
+      background: #efbd86;
+      color: #4b3a43;
+      cursor: pointer;
+      font-size: .76rem;
+      font-weight: 500;
+      box-shadow: 3px 3px 0 #4b3a43;
+    }
+
+    .upload input { display: none; }
+
+    .card-info { align-self: stretch; padding-top: 15px; }
+
+    .label {
+      margin: 0 0 5px;
+      color: #24191d;
+      font-size: .7rem;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .name {
+      margin: 0 0 18px;
+      font-family: "Smile Moon", cursive;
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 500;
+      color: #24191d;
+    }
+
+    .details {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(100px, 1fr));
+      gap: 12px 25px;
+      border-top: 2px solid rgba(36, 25, 29, .45);
+      padding-top: 14px;
+    }
+
+    .detail strong {
+      display: block;
+      margin-top: 3px;
+      font-size: .98rem;
+      color: #24191d;
+    }
+
+    .card-note {
+      align-self: end;
+      padding-left: 22px;
+      border-left: 2px solid rgba(36, 25, 29, .45);
+      color: #24191d;
+      font-family: "Smile Moon", cursive;
+      font-size: 1.05rem;
+      font-style: italic;
+      line-height: 1.5;
+    }
+
+    .wish-area {
+      display: flex;
+      justify-content: center;
+      width: min(850px, 100%);
+      margin: 0 auto;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+      width: min(520px, 100%);
+    }
+
+    .tab {
+      padding: 13px 15px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font: inherit;
+      font-size: .82rem;
+      font-weight: 800;
+      text-align: center;
+      transition: .2s ease;
+    }
+
+    .tab:hover { color: var(--ink); background: rgba(255, 255, 255, .55); }
+    .tab.active {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: white;
+      box-shadow: 5px 5px 0 var(--yellow);
+      transform: translate(-2px, -2px);
+    }
+
+    .tab-info {
+      border: 4px solid #4b3a43;
+      border-radius: 18px;
+      background: #b7c7a3;
+      color: #4b3a43;
+      box-shadow: 6px 6px 0 #4b3a43;
+      font-size: 1.5rem;
+      font-weight: 500;
+    }
+
+    .tab-info:hover,
+    .tab-info.active {
+      border-color: #4b3a43;
+      background: #b7c7a3;
+      color: #4b3a43;
+      box-shadow: 4px 4px 0 #4b3a43;
+      transform: translate(2px, 2px);
+    }
+
+    .tab-want {
+      border: 4px solid #4b3a43;
+      border-radius: 18px;
+      background: #a9cfe0;
+      color: #4b3a43;
+      box-shadow: 6px 6px 0 #4b3a43;
+      font-size: 1.5rem;
+      font-weight: 500;
+    }
+
+    .tab-want:hover,
+    .tab-want.active {
+      border-color: #4b3a43;
+      background: #a9cfe0;
+      color: #4b3a43;
+      box-shadow: 4px 4px 0 #4b3a43;
+      transform: translate(2px, 2px);
+    }
+
+    .tab-not-want {
+      border: 4px solid #4b3a43;
+      border-radius: 18px;
+      background: #d8a8c5;
+      color: #4b3a43;
+      box-shadow: 6px 6px 0 #4b3a43;
+      font-size: 1.5rem;
+      font-weight: 500;
+    }
+
+    .tab-not-want:hover,
+    .tab-not-want.active {
+      border-color: #4b3a43;
+      background: #d8a8c5;
+      color: #4b3a43;
+      box-shadow: 4px 4px 0 #4b3a43;
+      transform: translate(2px, 2px);
+    }
+
+    .tab-ranking {
+      border: 4px solid #4b3a43;
+      border-radius: 18px;
+      background: #efbd86;
+      color: #4b3a43;
+      box-shadow: 6px 6px 0 #4b3a43;
+      font-size: 1.5rem;
+      font-weight: 500;
+    }
+
+    .tab-ranking:hover,
+    .tab-ranking.active {
+      border-color: #4b3a43;
+      background: #efbd86;
+      color: #4b3a43;
+      box-shadow: 4px 4px 0 #4b3a43;
+      transform: translate(2px, 2px);
+    }
+
+    .panel-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 15px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 14px;
+    }
+
+    h2 {
+      margin: 0;
+      font-family: "Smile Moon", cursive;
+      font-size: 1.65rem;
+      font-weight: 500;
+    }
+
+    .counter {
+      color: var(--coral);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .items {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px 28px;
+      margin: 21px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .items li {
+      display: flex;
+      gap: 9px;
+      align-items: center;
+      color: var(--ink);
+      font-size: .92rem;
+      line-height: 1.35;
+    }
+
+    .items li::before {
+      width: 7px;
+      height: 7px;
+      flex: 0 0 7px;
+      border-radius: 50%;
+      background: var(--coral);
+      content: "";
+    }
+
+    .modal[hidden] { display: none; }
+
+    .modal {
+      position: fixed;
+      z-index: 10;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(41, 36, 73, .38);
+    }
+
+    .modal-content {
+      width: min(600px, 100%);
+      max-height: min(620px, 90vh);
+      overflow: auto;
+      position: relative;
+      padding: 34px 33px 33px;
+      border: 5px solid #5B475D;
+      border-radius: 30px;
+      background: #F6F2F7;
+      color: #24191d;
+      box-shadow: 7px 7px 0 #24191d;
+      animation: modal-in .2s ease-out;
+    }
+
+    .modal-content::before {
+      position: absolute;
+      inset: 0 0 auto;
+      height: 0;
+      content: "";
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 17px;
+      right: 19px;
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 50%;
+      background: #9EB3D1;
+      color: #24191d;
+      cursor: pointer;
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+
+    .modal-close:hover { background: #9EB3D1; }
+
+    .modal-content .panel-heading {
+      border-bottom-color: #E8DEF1;
+    }
+
+    .modal-content .counter { color: #4b3a43; }
+
+    .modal-content h2,
+    .modal-content strong,
+    .modal-content .items li,
+    .modal-content .ranking-editor-row span {
+      color: #4b3a43;
+    }
+
+    .modal-content .editor-actions button:first-child,
+    .modal-content .list-editor-actions button,
+    .modal-content .ranking-controls button {
+      border-color: #E8DEF1;
+      background: #9A7FB3;
+      color: #24191d;
+    }
+
+    .list-modal-content .panel-heading { padding-top: 32px; }
+
+    .list-modal-content { width: min(680px, 100%); }
+
+    .edit-list-button[hidden] { display: none; }
+
+    .edit-list-button {
+      position: absolute;
+      top: 17px;
+      left: 20px;
+      padding: 8px 11px;
+      border: 1px solid #E8DEF1;
+      border-radius: 8px;
+      background: #9A7FB3;
+      color: var(--ink);
+      cursor: pointer;
+      font: inherit;
+      font-size: .72rem;
+      font-weight: 800;
+    }
+
+    .modal .items { grid-template-columns: 1fr; margin-top: 21px; }
+    .modal .items li::before { background: #9A7FB3; }
+    .modal .item-content { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+    .modal .item-content > span:first-child { font-size: 1.08rem; }
+    .modal .item-reference { display: block; width: fit-content; color: #5B475D; font-size: .95rem; font-weight: 800; }
+    .modal .item-actions { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; margin-top: 4px; }
+    .modal .reserve-button { padding: 6px 10px; border: 1px solid #E8DEF1; border-radius: 7px; background: #9A7FB3; color: #4b3a43; cursor: pointer; font: inherit; font-size: .78rem; font-weight: 800; }
+    .modal .reserved-by { color: #5B475D; font-size: .8rem; font-weight: 800; }
+    .name-gate-modal .modal-content { width: min(440px, 100%); }
+    .name-gate-form { display: grid; gap: 10px; margin-top: 18px; }
+    .name-gate-form input { width: 100%; padding: 10px; border: 2px solid #E8DEF1; border-radius: 8px; background: var(--paper); color: var(--ink); font: inherit; }
+    .reservation-message { margin: 15px 0 0; color: #9b3f35; font-size: .88rem; font-weight: 800; }
+    .editor-access-message { margin: 15px 0 0; color: var(--muted); font-size: .9rem; text-align: center; }
+    .editor-access-message a { color: var(--ink); font-weight: 800; }
+    .reserve-button:disabled { cursor: not-allowed; opacity: .62; }
+
+    .list-editor { display: grid; gap: 11px; margin-top: 18px; }
+    .list-editor[hidden], .modal .items[hidden] { display: none; }
+    .list-editor-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .list-editor-row input[type="text"], .list-editor-row input[type="url"] { min-width: 0; padding: 10px; border: 2px solid #E8DEF1; border-radius: 8px; background: var(--paper); color: var(--ink); font: inherit; }
+    .list-editor-row input[type="text"], .list-editor-row input[type="url"], .list-editor-row input[type="file"], .list-editor-row .list-item-image { grid-column: 1; }
+    .list-editor-row input[type="file"] { width: 100%; font-size: .72rem; }
+    .list-editor-row button { padding: 9px 11px; border: 2px solid #E8DEF1; border-radius: 8px; background: #9A7FB3; color: #24191d; cursor: pointer; font: inherit; font-weight: 800; }
+    .list-editor-row button { grid-column: 2; grid-row: 1 / -1; align-self: start; }
+    .list-item-image { width: 64px; height: 64px; border-radius: 8px; object-fit: cover; }
+    .list-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .list-editor-actions button { padding: 10px 13px; border: 1px solid #E8DEF1; border-radius: 8px; background: #9A7FB3; color: #24191d; cursor: pointer; font: inherit; font-weight: 800; }
+    .list-editor-actions button.secondary { background: var(--coral); color: var(--ink); }
+    .items li { flex-wrap: wrap; }
+    .items li img { width: 72px; height: 72px; border-radius: 8px; object-fit: cover; }
+
+    .ranking-image-button {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .ranking-image-button img { width: 104px; height: 104px; }
+
+    .image-preview-modal .modal-content { width: min(760px, 100%); text-align: center; }
+    .image-preview-modal img { display: block; width: 100%; max-height: 70vh; border-radius: 12px; object-fit: contain; }
+
+    .ranking-controls { display: flex; gap: 5px; }
+    .ranking-controls button { padding: 6px 9px; font-size: .72rem; }
+
+    .guide-modal .modal-content { width: min(680px, 100%); }
+
+    .profile-modal .modal-content { width: min(520px, 100%); }
+
+    .profile-form { display: grid; gap: 12px; margin-top: 20px; }
+    .profile-form label { color: var(--muted); font-size: .72rem; font-weight: 800; text-transform: uppercase; }
+    .profile-form input { width: 100%; margin-top: 5px; padding: 10px; border: 2px solid #E8DEF1; border-radius: 8px; background: #f4f0dc; color: #24191d; font: inherit; }
+
+    .guide-modal p { color: var(--muted); line-height: 1.55; }
+
+    .gift-name-modal .modal-content { width: min(420px, 100%); text-align: center; }
+    .gift-name-modal h2 { margin-top: 16px; }
+
+    .ranking-board {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 26px;
+    }
+
+    .ranking-gift {
+      min-height: 150px;
+      padding: 10px;
+      border: 0;
+      border-radius: 12px;
+      background: rgba(255, 250, 245, .78);
+      cursor: pointer;
+    }
+
+    .ranking-gift img {
+      display: block;
+      width: 100%;
+      height: 145px;
+      border-radius: 9px;
+      object-fit: cover;
+    }
+
+    .ranking-empty { grid-column: 1 / -1; color: var(--muted); text-align: center; }
+
+    .ranking-editor-row { display: flex; align-items: center; gap: 10px; }
+    .ranking-editor-row img { width: 58px; height: 58px; border-radius: 8px; object-fit: cover; }
+    .ranking-editor-row span { flex: 1; }
+
+    .tier-list { display: grid; gap: 8px; margin-top: 22px; }
+    .tier-row { display: grid; grid-template-columns: 58px 1fr; min-height: 86px; border: 2px solid #5B475D; background: #fff; }
+    .tier-label { display: grid; place-items: center; color: #fff; font-size: 1.35rem; font-weight: 800; }
+    .tier-label-one { background: #9A7FB3; }
+    .tier-label-two { background: #9EB3D1; color: #24191d; }
+    .tier-label-three { background: #A9CFE0; color: #24191d; }
+    .tier-label-four { background: #B7C7A3; color: #24191d; }
+    .tier-label-five { background: #E8A096; color: #24191d; }
+    .tier-dropzone { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 7px; padding: 7px; background: #333; }
+    .tier-dropzone.is-over { background: #5B475D; }
+    .tier-item, .tier-source-item { width: 72px; height: 72px; padding: 0; border: 2px solid #E8DEF1; border-radius: 6px; background: #f6f2f7; cursor: grab; overflow: hidden; }
+    .tier-item img, .tier-source-item img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .tier-sources { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; padding: 12px; border: 2px dashed #5B475D; background: #E8DEF1; }
+    .tier-sources:empty { display: none; }
+    .tier-sources-title { width: 100%; color: #4b3a43; font-size: .8rem; font-weight: 800; }
+
+    .link-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      margin: 10px 0 18px;
+    }
+
+    .link-row input, .editor-form input, .editor-form textarea {
+      width: 100%;
+      border: 2px solid #E8DEF1;
+      border-radius: 8px;
+      background: #f4f0dc;
+      color: #24191d;
+      font: inherit;
+    }
+
+    .link-row input { min-width: 0; padding: 10px; font-size: .76rem; }
+
+    .small-button, .editor-actions button {
+      padding: 10px 13px;
+      border: 1px solid #E8DEF1;
+      border-radius: 8px;
+      background: #9A7FB3;
+      color: var(--ink);
+      cursor: pointer;
+      font: inherit;
+      font-size: .78rem;
+      font-weight: 800;
+    }
+
+    .editor-panel[hidden] { display: none; }
+
+    .editor-panel {
+      width: min(850px, 100%);
+      margin: 0 auto 35px;
+      padding: 25px;
+      border: 1px solid rgba(170, 161, 232, .72);
+      border-radius: 18px;
+      background: rgba(255, 253, 248, .94);
+      box-shadow: var(--shadow);
+    }
+
+    .editor-form { display: grid; gap: 12px; }
+    .editor-form label { color: var(--muted); font-size: .72rem; font-weight: 800; text-transform: uppercase; }
+    .editor-form input, .editor-form textarea { margin-top: 5px; padding: 10px; }
+    .editor-form textarea { min-height: 75px; resize: vertical; }
+    .editor-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 7px; }
+    .editor-actions button:first-child { background: var(--ink); color: white; }
+
+    .modal-content {
+      border-color: #5B475D;
+      background: #F6F2F7;
+      color: #4b3a43;
+      box-shadow: 7px 7px 0 #5B475D;
+    }
+
+    .modal-content .panel-heading,
+    .modal-content .link-row input,
+    .modal-content .profile-form input,
+    .modal-content .list-editor-row input[type="text"],
+    .modal-content .list-editor-row input[type="url"],
+    .modal-content .list-editor-row button,
+    .modal-content .list-editor-actions button,
+    .modal-content .small-button,
+    .modal-content .editor-actions button,
+    .modal-content .ranking-controls button {
+      border-color: #E8DEF1;
+    }
+
+    .modal-content .modal-close {
+      border: 0;
+      background: #9EB3D1;
+    }
+
+    .modal-content .edit-list-button,
+    .modal-content .small-button,
+    .modal-content .editor-actions button,
+    .modal-content .list-editor-row button,
+    .modal-content .list-editor-actions button,
+    .modal-content .ranking-controls button {
+      background: #9A7FB3;
+      color: #4b3a43;
+    }
+
+    .modal-content .list-editor-actions button.secondary {
+      background: #9A7FB3;
+    }
+
+    .modal-content .ranking-gift {
+      background: #E8DEF1;
+    }
+
+    .modal-content .items li::before {
+      background: #9A7FB3;
+    }
+
+    @keyframes modal-in {
+      from { opacity: 0; transform: translateY(12px) scale(.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @media (max-width: 760px) {
+      .page { width: min(100% - 28px, 560px); padding-top: 38px; }
+      .id-card { grid-template-columns: 125px 1fr; gap: 19px; padding: 25px 21px; }
+      .photo { width: 115px; height: 142px; font-size: 3rem; }
+      .guide-tagline { margin: 0 auto 22px; padding: 0 8px; }
+      .card-note { grid-column: 1 / -1; border-left: 0; border-top: 2px solid rgba(36, 25, 29, .45); padding: 16px 0 0; }
+      .tabs { display: grid; grid-template-columns: repeat(2, 1fr); }
+      .tab { text-align: center; }
+    }
+
+    @media (max-width: 440px) {
+      .page { width: calc(100% - 24px); padding-top: 68px; }
+      .share-button { top: 12px; right: 12px; }
+      .profile-edit-button { top: 12px; left: 12px; }
+      .share-button, .profile-edit-button { padding: 7px 9px; font-size: .68rem; }
+      .id-card { grid-template-columns: 1fr; gap: 12px; padding: 20px 16px; border-width: 4px; border-radius: 22px; text-align: center; }
+      .photo { width: min(150px, 100%); height: auto; aspect-ratio: 5 / 6; }
+      .card-info { padding-top: 0; }
+      .details { text-align: left; }
+      .items { grid-template-columns: 1fr; }
+      .panel-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
+      .list-editor-row { grid-template-columns: 1fr auto; }
+      .ranking-board { gap: 10px; }
+      .ranking-gift img { height: 110px; }
+      .modal { padding: 12px; }
+      .modal-content { max-height: calc(100dvh - 24px); padding: 54px 17px 20px; border-width: 4px; border-radius: 22px; }
+      .list-modal-content .panel-heading { padding-top: 0; }
+      .tier-row { grid-template-columns: 38px minmax(0, 1fr); }
+      .tier-item, .tier-source-item { width: 58px; height: 58px; }
+      .tier-dropzone { gap: 5px; padding: 5px; }
+    }
+  </style>
+</head>
+<body>
+  <button class="profile-edit-button" id="profileEditButton" type="button">Editar ficha</button>
+  <button class="share-button" id="shareButton" type="button">Compartir enlace</button>
+  <main class="page">
+    <header>
+      <h1>
+        <img class="title-gif" src="wishlist.gif" alt="Wishlist">
+      </h1>
+      <p class="guide-tagline">Guía para hacerme el regalo perfecto</p>
+      <button class="create-guide" id="createGuide" type="button">Crear mi Guía</button>
+    </header>
+    <p class="reservation-message save-message" id="saveMessage" role="status" aria-live="polite" hidden></p>
+    <p class="editor-access-message" id="editorAccessMessage" hidden>Para editar, inicia sesión con tu cuenta administradora en <a href="admin.html">Administración</a>.</p>
+
+    <section class="editor-panel" id="editorPanel" hidden aria-label="Editor de guía">
+      <div class="panel-heading">
+        <h2>Editar mi guía</h2>
+        <span class="counter">Solo tú puedes editar este enlace</span>
+      </div>
+      <form class="editor-form" id="editorForm">
+        <label>Nombre<input name="name" required></label>
+        <label>Fecha especial<input name="date" inputmode="numeric" placeholder="DD MM AAAA" required></label>
+        <label>Hobby<input name="hobby"></label>
+        <label>Frase<input name="note"></label>
+        <label>Datos importantes<textarea name="likes" required></textarea></label>
+        <label>Lo que quiero<textarea name="want" required></textarea></label>
+        <label>Lo que no quiero<textarea name="notWant" required></textarea></label>
+        <div class="editor-actions">
+          <button type="submit">Guardar cambios y crear enlaces</button>
+          <button id="exitEditor" type="button">Ver guía</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="id-card" aria-label="Ficha personal">
+      <div class="photo-wrap">
+        <div class="photo" id="photoPreview">
+          <span class="photo-placeholder">A</span>
+          <img id="profileImage" alt="Foto de perfil">
+        </div>
+        <label class="upload">Cambiar foto
+          <input id="photoInput" type="file" accept="image/*">
+        </label>
+      </div>
+
+      <div class="card-info">
+        <p class="label">Identidad de cumpleañera</p>
+        <h2 class="name" id="profileName">Ayelén</h2>
+        <div class="details">
+          <div class="detail"><p class="label">Fecha especial</p><strong id="profileDate">07-09-2026</strong></div>
+          <div class="detail"><p class="label">Hobby</p><strong id="profileHobby">Crear cosas bonitas</strong></div>
+        </div>
+      </div>
+
+      <p class="card-note" id="profileNote">“Lo importante es compartir un momento bonito.”</p>
+    </section>
+
+    <section class="wish-area" aria-label="Preferencias de regalo">
+      <nav class="tabs" aria-label="Categorías">
+        <button class="tab tab-info active" data-tab="likes" type="button">Info</button>
+        <button class="tab tab-want" data-tab="want" type="button">Quiero</button>
+        <button class="tab tab-not-want" data-tab="not-want" type="button">No quiero</button>
+        <button class="tab tab-ranking" data-tab="hate" type="button">Ranking</button>
+      </nav>
+    </section>
+
+    <div class="modal" id="preferencesModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden>
+      <div class="modal-content list-modal-content">
+        <button class="modal-close" id="closeModal" type="button" aria-label="Cerrar ventana">&times;</button>
+        <button class="edit-list-button" id="editListButton" type="button" hidden>Editar lista</button>
+        <div class="panel-heading">
+          <h2 id="modalTitle">Lo que no quiero</h2>
+          <span class="counter" id="modalCounter">4 preferencias</span>
+        </div>
+        <p class="reservation-message" id="reservationMessage" role="status" aria-live="polite" hidden></p>
+          <p class="reservation-message save-message" role="status" aria-live="polite" hidden></p>
+        <ul class="items" id="modalItems"></ul>
+        <div class="list-editor" id="listEditor" hidden></div>
+      </div>
+    </div>
+
+    <div class="modal gift-name-modal" id="giftNameModal" role="dialog" aria-modal="true" aria-labelledby="giftNameTitle" hidden>
+      <div class="modal-content">
+        <button class="modal-close" id="closeGiftNameModal" type="button" aria-label="Cerrar ventana">&times;</button>
+        <h2 id="giftNameTitle">Regalo</h2>
+      </div>
+    </div>
+
+    <div class="modal image-preview-modal" id="imagePreviewModal" role="dialog" aria-modal="true" aria-labelledby="imagePreviewTitle" hidden>
+      <div class="modal-content">
+        <button class="modal-close" id="closeImagePreviewModal" type="button" aria-label="Cerrar ventana">&times;</button>
+        <h2 id="imagePreviewTitle">Imagen</h2>
+        <img id="imagePreview" alt="">
+      </div>
+    </div>
+
+    <div class="modal name-gate-modal" id="nameGateModal" role="dialog" aria-modal="true" aria-labelledby="nameGateTitle" hidden>
+      <div class="modal-content">
+        <h2 id="nameGateTitle">¿Cuál es tu nombre?</h2>
+        <p>Si quieres, escribe tu nombre para identificar el apartado.</p>
+        <form class="name-gate-form" id="nameGateForm">
+          <input id="viewerName" name="viewerName" maxlength="50" autocomplete="name" placeholder="Tu nombre (opcional)">
+          <button class="small-button" type="submit">Continuar</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal guide-modal" id="guideModal" role="dialog" aria-modal="true" aria-labelledby="guideModalTitle" hidden>
+      <div class="modal-content">
+        <button class="modal-close" id="closeGuideModal" type="button" aria-label="Cerrar ventana">&times;</button>
+        <div class="panel-heading">
+          <h2 id="guideModalTitle">¡Guía creada!</h2>
+        </div>
+        <p>No pierdas este enlace si quieres seguir editando tu guía.</p>
+        <strong>Enlace para editar</strong>
+        <div class="link-row">
+          <input id="editLink" readonly aria-label="Enlace para editar">
+          <button class="small-button" data-copy="editLink" type="button">Copiar</button>
+        </div>
+        <div class="editor-actions">
+          <button class="small-button" id="goToEditor" type="button">Ir al editor</button>
+          <button class="small-button" id="closeGuide" type="button">Cerrar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal profile-modal" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle" hidden>
+      <div class="modal-content">
+        <button class="modal-close" id="closeProfileModal" type="button" aria-label="Cerrar ventana">&times;</button>
+        <div class="panel-heading">
+          <h2 id="profileModalTitle">Editar ficha</h2>
+        </div>
+        <p class="reservation-message save-message" role="status" aria-live="polite" hidden></p>
+        <form class="profile-form" id="profileForm">
+          <label>Nombre<input name="name" required></label>
+          <label>Fecha especial<input name="date" inputmode="numeric" placeholder="DD MM AAAA" required></label>
+          <label>Hobby<input name="hobby"></label>
+          <label>Frase<input name="note"></label>
+          <div class="editor-actions">
+            <button type="submit">Guardar cambios</button>
+            <button class="small-button" id="cancelProfileEdit" type="button">Cerrar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+    import { getFirestore, collection, doc, getDoc, getDocFromServer, onSnapshot, serverTimestamp, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAtV3NTAVlKOq_5KIJV9jEgp4gFyhV57Xk",
+      authDomain: "wishlist-aef0f.firebaseapp.com",
+      projectId: "wishlist-aef0f",
+      storageBucket: "wishlist-aef0f.firebasestorage.app",
+      messagingSenderId: "33535489851",
+      appId: "1:33535489851:web:5d45915130f8a5fe22e91e",
+      measurementId: "G-S3T1N6FEXN"
+    };
+    const ADMIN_EMAIL = "ayelencononir@gmail.com".toLowerCase();
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      const database = getFirestore(app);
+      const auth = getAuth(app);
+      window.sharedReservations = {
+        listen(guideId, callback) {
+          return onSnapshot(collection(database, "wishlistReservationStatus", guideId, "items"), snapshot => {
+            callback(Object.fromEntries(snapshot.docs.map(item => [item.id, true])), null);
+          }, error => callback({}, error));
+        },
+        async toggle(guideId, itemKey, name) {
+          const user = auth.currentUser || (await signInAnonymously(auth)).user;
+          const statusRef = doc(database, "wishlistReservationStatus", guideId, "items", itemKey);
+          const detailRef = doc(database, "wishlistReservations", guideId, "items", itemKey);
+          const status = await getDoc(statusRef);
+          const batch = writeBatch(database);
+          const mine = this.isMine(guideId, itemKey);
+          if (status.exists()) {
+            if (!mine) throw new Error("Este regalo ya fue apartado por otra persona.");
+            batch.delete(statusRef);
+            batch.delete(detailRef);
+          } else {
+            batch.set(statusRef, { reserved: true });
+            batch.set(detailRef, { uid: user.uid, name: name.slice(0, 50), createdAt: serverTimestamp() });
+          }
+          await batch.commit();
+          const owned = this.ownedItems(guideId);
+          if (status.exists()) owned.delete(itemKey);
+          else owned.add(itemKey);
+          localStorage.setItem(`wishlist-owned-reservations-${guideId}`, JSON.stringify([...owned]));
+        },
+        ownedItems(guideId) {
+          try {
+            return new Set(JSON.parse(localStorage.getItem(`wishlist-owned-reservations-${guideId}`)) || []);
+          } catch {
+            return new Set();
+          }
+        },
+        isMine(guideId, itemKey) {
+          return this.ownedItems(guideId).has(itemKey);
+        }
+      };
+      window.sharedGuides = {
+        canEdit() {
+          const user = auth.currentUser;
+          return ADMIN_EMAIL !== "REEMPLAZAR_CON_TU_CORREO_VERIFICADO" &&
+            user && !user.isAnonymous && user.emailVerified && user.email?.toLowerCase() === ADMIN_EMAIL;
+        },
+        async load(guideId) {
+          const snapshot = await getDocFromServer(doc(database, "wishlistGuides", guideId));
+          return snapshot.exists() ? snapshot.data() : null;
+        },
+        listen(guideId, callback) {
+          return onSnapshot(doc(database, "wishlistGuides", guideId), snapshot => {
+            callback(snapshot.exists() ? snapshot.data() : null, null);
+          }, error => callback(null, error));
+        },
+        async save(state) {
+          if (!this.canEdit()) throw new Error("Inicia sesión con la cuenta administradora verificada desde admin.html antes de editar.");
+          await setDoc(doc(database, "wishlistGuides", state.guideId), state);
+        }
+      };
+      onAuthStateChanged(auth, () => window.dispatchEvent(new Event("shared-auth-changed")));
+      window.dispatchEvent(new Event("shared-reservations-ready"));
+      window.dispatchEvent(new Event("shared-guides-ready"));
+    } catch {
+      window.sharedReservations = null;
+      window.sharedGuides = null;
+      window.dispatchEvent(new Event("shared-reservations-ready"));
+      window.dispatchEvent(new Event("shared-guides-ready"));
+    }
+  </script>
+
+  <script>
+    let content = {
+      "not-want": {
+        title: "Lo que no quiero",
+        items: ["Regalos de último minuto", "Cosas que no voy a usar", "Papel de regalo plástico", "Sorpresas demasiado intensas"]
+      },
+      likes: {
+        title: "Datos importantes",
+        items: ["Colores suaves y detalles hechos a mano", "Libros, papelería y velas", "Flores frescas", "Planes tranquilos y creativos"]
+      },
+      want: {
+        title: "Lo que quiero",
+        items: ["Una carta escrita con cariño", "Un día compartido sin apuro", "Algo para decorar mi espacio", "Una experiencia para recordar"]
+      },
+      hate: {
+        title: "Ranking de regalos",
+        items: ["Perfumes sin conocer mis gustos", "Tazas genéricas", "Cosas con demasiada brillantina", "Regalos que vienen con compromiso"]
+      }
+    };
+
+    const defaultState = {
+      guideId: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+      name: "Ayelén",
+      date: "07-09-2026",
+      hobby: "Crear cosas bonitas",
+      note: "Lo importante es compartir un momento bonito.",
+      likes: content.likes.items.join("\n"),
+      want: content.want.items.join("\n"),
+      notWant: content["not-want"].items.join("\n"),
+      hate: content.hate.items.join("\n"),
+      profilePhoto: "",
+      photos: { likes: [], want: [], "not-want": [], hate: [] },
+      links: { likes: [], want: [], "not-want": [], hate: [] },
+      ranking: [0, 1, 2, 3],
+      rankingTiers: { "1": [], "2": [], "3": [], "4": [], "5": [] }
+    };
+
+    const blankState = {
+      ...defaultState,
+      guideId: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+      name: "",
+      date: "",
+      hobby: "",
+      note: "",
+      likes: "",
+      want: "",
+      notWant: "",
+      hate: ""
+    };
+
+    const storageKey = "wishlist-guide-state";
+
+    const tabs = document.querySelectorAll(".tab");
+    const modal = document.querySelector("#preferencesModal");
+    const modalTitle = document.querySelector("#modalTitle");
+    const modalCounter = document.querySelector("#modalCounter");
+    const modalItems = document.querySelector("#modalItems");
+    const listEditor = document.querySelector("#listEditor");
+    const editListButton = document.querySelector("#editListButton");
+    const giftNameModal = document.querySelector("#giftNameModal");
+    const giftNameTitle = document.querySelector("#giftNameTitle");
+    const imagePreviewModal = document.querySelector("#imagePreviewModal");
+    const imagePreview = document.querySelector("#imagePreview");
+    const imagePreviewTitle = document.querySelector("#imagePreviewTitle");
+    const nameGateModal = document.querySelector("#nameGateModal");
+    const nameGateForm = document.querySelector("#nameGateForm");
+    const viewerNameInput = document.querySelector("#viewerName");
+    const reservationMessage = document.querySelector("#reservationMessage");
+    const closeModal = document.querySelector("#closeModal");
+    const guideModal = document.querySelector("#guideModal");
+    const editorPanel = document.querySelector("#editorPanel");
+    const editorForm = document.querySelector("#editorForm");
+    const profileModal = document.querySelector("#profileModal");
+    const profileForm = document.querySelector("#profileForm");
+    let currentState = { ...defaultState };
+    let activeListKey = "likes";
+    let sharedReservationState = {};
+    let sharedReservationsLoaded = false;
+    let stopSharedReservations = null;
+    let sharedReservationGuideId = "";
+    let stopSharedGuide = null;
+    let sharedGuideListenerId = "";
+    let pendingReservation = null;
+    let sharedGuideLoaded = false;
+    let sharedGuideExists = false;
+
+    function loadStoredState() {
+      try {
+        const stored = localStorage.getItem(storageKey);
+        return stored ? JSON.parse(stored) : defaultState;
+      } catch {
+        return defaultState;
+      }
+    }
+
+    async function saveSharedState(state = currentState) {
+      const saveMessages = document.querySelectorAll(".save-message");
+      saveMessages.forEach(message => {
+        message.textContent = "Guardando cambios en Firestore...";
+        message.hidden = false;
+      });
+      try {
+        if (!window.sharedGuides) throw new Error("Firebase no está disponible. Comprueba tu conexión e inténtalo de nuevo.");
+        await window.sharedGuides.save(state);
+        sharedGuideExists = true;
+        updateEditorAccess();
+        saveMessages.forEach(message => { message.textContent = "Cambios guardados y sincronizados."; });
+        return true;
+      } catch (error) {
+        saveMessages.forEach(message => { message.textContent = `No se guardaron los cambios. ${error.message}`; });
+        return false;
+      }
+    }
+
+    function reservationsKey() {
+      return `wishlist-reservations-${currentState.guideId}`;
+    }
+
+    function loadReservations() {
+      return sharedReservationState;
+    }
+
+    function startSharedReservations() {
+      if (!isViewOnly || !window.sharedReservations) return;
+      if (stopSharedReservations && sharedReservationGuideId !== currentState.guideId) {
+        stopSharedReservations();
+        stopSharedReservations = null;
+        sharedReservationState = {};
+        sharedReservationsLoaded = false;
+      }
+      if (stopSharedReservations) return;
+      sharedReservationGuideId = currentState.guideId;
+      stopSharedReservations = window.sharedReservations.listen(currentState.guideId, (reservations, error) => {
+        if (error) {
+          sharedReservationsLoaded = false;
+          reservationMessage.textContent = "No se pudo consultar el estado de las reservas. Recarga la página o inténtalo más tarde.";
+          reservationMessage.hidden = false;
+          return;
+        }
+        sharedReservationState = reservations;
+        sharedReservationsLoaded = true;
+        reservationMessage.hidden = true;
+        if (!modal.hidden) renderList(activeListKey);
+      });
+    }
+
+    async function loadSharedGuideFromLink() {
+      if (!window.sharedGuides || !(window.location.hash.startsWith("#view=") || window.location.hash.startsWith("#edit="))) return;
+      const encodedValue = window.location.hash.slice(6);
+      const encodedState = decodeState(encodedValue);
+      const guideId = encodedState && encodedState.guideId ? encodedState.guideId : decodeURIComponent(encodedValue);
+      try {
+        const sharedState = await window.sharedGuides.load(guideId);
+        if (!sharedState) {
+          sharedGuideExists = false;
+          if (window.sharedGuides.canEdit() && currentState.guideId === guideId) {
+            sharedGuideLoaded = true;
+            updateEditorAccess();
+            return;
+          }
+          document.querySelector("#saveMessage").textContent = "No se encontró esta wishlist en Firestore. Verifica que el enlace y el guideId sean correctos.";
+          document.querySelector("#saveMessage").hidden = false;
+          return;
+        }
+        sharedGuideExists = true;
+        renderState(sharedState);
+        sharedGuideLoaded = true;
+        updateEditorAccess();
+        startSharedReservations();
+        if (isViewOnly && sharedGuideListenerId !== guideId) {
+          if (stopSharedGuide) stopSharedGuide();
+          sharedGuideListenerId = guideId;
+          stopSharedGuide = window.sharedGuides.listen(guideId, (latestState, error) => {
+            if (error) {
+              document.querySelector("#saveMessage").textContent = "No se pudo sincronizar esta wishlist en tiempo real. Recarga para volver a intentarlo.";
+              document.querySelector("#saveMessage").hidden = false;
+              return;
+            }
+            if (!latestState) return;
+            renderState(latestState);
+            if (!modal.hidden) renderList(activeListKey);
+          });
+        }
+      } catch {
+        document.querySelector("#saveMessage").textContent = "No se pudo cargar la wishlist desde Firestore. Comprueba la conexión y las reglas de lectura.";
+        document.querySelector("#saveMessage").hidden = false;
+      }
+    }
+
+    function viewerName() {
+      return localStorage.getItem("wishlist-viewer-name") || "";
+    }
+
+    function hasViewerNameEntry() {
+      return localStorage.getItem("wishlist-viewer-name-set") === "true";
+    }
+
+    async function reserveItem(key, index) {
+      if (!hasViewerNameEntry()) {
+        pendingReservation = { key, index };
+        nameGateModal.hidden = false;
+        viewerNameInput.focus();
+        return;
+      }
+      if (!window.sharedReservations || !sharedReservationsLoaded) {
+        reservationMessage.textContent = "No se puede confirmar el apartado ahora. Comprueba la conexión e inténtalo de nuevo.";
+        reservationMessage.hidden = false;
+        return;
+      }
+      const name = viewerName();
+      const itemKey = `${key}:${index}`;
+      reservationMessage.hidden = true;
+      try {
+        await window.sharedReservations.toggle(currentState.guideId, itemKey, name);
+        sharedReservationState[itemKey] = sharedReservations.isMine(currentState.guideId, itemKey);
+        if (!sharedReservationState[itemKey]) delete sharedReservationState[itemKey];
+        renderList(key);
+      } catch (error) {
+        const latestStatus = await getReservationStatus(itemKey);
+        reservationMessage.textContent = latestStatus
+          ? "Este regalo acaba de ser apartado por otra persona."
+          : "No se pudo guardar el apartado en Firestore. Comprueba la conexión e inténtalo de nuevo.";
+        reservationMessage.hidden = false;
+        renderList(key);
+      }
+    }
+
+    async function getReservationStatus(itemKey) {
+      if (!window.sharedReservations || !sharedReservationsLoaded) return false;
+      return Boolean(sharedReservationState[itemKey]);
+    }
+
+    function encodeState(state) {
+      return btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+    }
+
+    function decodeState(value) {
+      try {
+        return JSON.parse(decodeURIComponent(escape(atob(value))));
+      } catch {
+        return null;
+      }
+    }
+
+    function normalizeDate(value) {
+      const numbers = value.replace(/\D/g, "");
+      if (numbers.length !== 8) return "";
+      return `${numbers.slice(0, 2)}-${numbers.slice(2, 4)}-${numbers.slice(4)}`;
+    }
+
+    function linksFor(state) {
+      const base = window.location.href.split("#")[0];
+      return {
+        view: `${base}#view=${state.guideId}`,
+        edit: `${base}#edit=${state.guideId}`
+      };
+    }
+
+    function renderState(state) {
+      currentState = { ...defaultState, ...state };
+      currentState.photos = { ...defaultState.photos, ...(state.photos || {}) };
+      currentState.links = { ...defaultState.links, ...(state.links || {}) };
+      currentState.ranking = Array.isArray(state.ranking) ? state.ranking : [...defaultState.ranking];
+      currentState.rankingTiers = normalizeRankingTiers(state.rankingTiers);
+      document.querySelector("#profileName").textContent = currentState.name;
+      document.querySelector("#profileDate").textContent = currentState.date;
+      document.querySelector("#profileHobby").textContent = currentState.hobby;
+      document.querySelector("#profileNote").textContent = `“${currentState.note}”`;
+      document.querySelector("#profileImage").src = currentState.profilePhoto || "";
+      document.querySelector("#photoPreview").classList.toggle("has-image", Boolean(currentState.profilePhoto));
+      content.likes.items = currentState.likes.split("\n").filter(Boolean);
+      content.want.items = currentState.want.split("\n").filter(Boolean);
+      content["not-want"].items = currentState.notWant.split("\n").filter(Boolean);
+      content.hate.items = currentState.hate.split("\n").filter(Boolean);
+    }
+
+    function isEditable() {
+      return !isViewOnly && window.sharedGuides?.canEdit() === true;
+    }
+
+    function updateEditorAccess() {
+      const authorized = window.sharedGuides?.canEdit() === true;
+      document.querySelector("#profileEditButton").hidden = isViewOnly || !authorized;
+      document.querySelector("#shareButton").hidden = isViewOnly || !authorized || !sharedGuideExists;
+      document.querySelector("#createGuide").hidden = !authorized;
+      document.querySelector("#editorAccessMessage").hidden = isViewOnly || authorized || !window.location.hash.startsWith("#edit=");
+      editListButton.hidden = !isEditable();
+      if (!authorized) editorPanel.hidden = true;
+      if (authorized && window.location.hash.startsWith("#new")) startEditor();
+      if (authorized && sharedGuideLoaded && window.location.hash.startsWith("#edit=")) startEditor();
+    }
+
+    function escapeHTML(value) {
+      return value.replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#039;"
+      }[character]));
+    }
+
+    function photoSources(value) {
+      return Array.isArray(value) ? value.filter(Boolean) : value ? [value] : [];
+    }
+
+    function compressImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.addEventListener("load", () => {
+          const image = new Image();
+          image.addEventListener("load", () => {
+            const scale = Math.min(1, 900 / Math.max(image.naturalWidth, image.naturalHeight));
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+            canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+            canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL("image/jpeg", .78));
+          });
+          image.addEventListener("error", reject);
+          image.src = reader.result;
+        });
+        reader.addEventListener("error", reject);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function showImagePreview(source, name) {
+      imagePreview.src = source;
+      imagePreview.alt = name || "Imagen";
+      imagePreviewTitle.textContent = name || "Imagen";
+      imagePreviewModal.hidden = false;
+      document.querySelector("#closeImagePreviewModal").focus();
+    }
+
+    function rankingEntries() {
+      const items = content.want.items;
+      const order = currentState.ranking.filter(index => index >= 0 && index < items.length);
+      items.forEach((_, index) => {
+        if (!order.includes(index)) order.push(index);
+      });
+      return order.map(index => ({
+        index,
+        name: items[index],
+        photos: photoSources((currentState.photos.want || [])[index])
+      }));
+    }
+
+    function normalizeRankingTiers(value) {
+      const tiers = { "1": [], "2": [], "3": [], "4": [], "5": [] };
+      if (value && typeof value === "object") {
+        const oldTiers = ["S", "A", "B", "C", "D", "E", "F"];
+        Object.keys(tiers).forEach((tier, index) => {
+          const source = Array.isArray(value[tier]) ? value[tier] : value[oldTiers[index]];
+          tiers[tier] = Array.isArray(source) ? source.filter(itemIndex => Number.isInteger(itemIndex)) : [];
+        });
+      }
+      return tiers;
+    }
+
+    function tierEntries() {
+      const items = content.want.items;
+      const tiers = currentState.rankingTiers;
+      const assigned = new Set(Object.values(tiers).flat());
+      const entryFor = index => ({
+        index,
+        name: items[index],
+        source: photoSources((currentState.photos.want || [])[index])[0]
+      });
+      return {
+        tiers: Object.fromEntries(Object.keys(tiers).map(tier => [tier, tiers[tier].filter(index => index < items.length).map(entryFor).filter(entry => entry.source)])),
+        unassigned: items.map((_, index) => entryFor(index)).filter(entry => entry.source && !assigned.has(entry.index))
+      };
+    }
+
+    function tierBoardMarkup(editable) {
+      const entries = tierEntries();
+      const labels = ["1", "2", "3", "4", "5"];
+      const labelClasses = ["one", "two", "three", "four", "five"];
+      const rows = labels.map((tier, index) => `<div class="tier-row"><div class="tier-label tier-label-${labelClasses[index]}">${tier}</div><div class="tier-dropzone" data-tier="${tier}">${entries.tiers[tier].map(entry => `<button class="tier-item" type="button" draggable="${editable}" data-tier-index="${entry.index}" data-photo-source="${escapeHTML(entry.source)}" data-photo-name="${escapeHTML(entry.name)}"><img src="${entry.source}" alt="${escapeHTML(entry.name)}"></button>`).join("")}</div></div>`).join("");
+      const sourceTray = `<div class="tier-sources" data-tier="unassigned"><strong class="tier-sources-title">Imágenes sin clasificar</strong>${entries.unassigned.map(entry => `<button class="tier-source-item" type="button" draggable="${editable}" data-tier-index="${entry.index}" data-photo-source="${escapeHTML(entry.source)}" data-photo-name="${escapeHTML(entry.name)}"><img src="${entry.source}" alt="${escapeHTML(entry.name)}"></button>`).join("")}</div>`;
+      return `<div class="tier-list">${rows}</div>${editable ? sourceTray : ""}`;
+    }
+
+    function attachTierInteractions() {
+      listEditor.querySelectorAll("[data-photo-source]").forEach(button => button.addEventListener("click", () => showImagePreview(button.dataset.photoSource, button.dataset.photoName)));
+      listEditor.querySelectorAll("[draggable='true']").forEach(item => item.addEventListener("dragstart", event => {
+        event.dataTransfer.setData("text/plain", item.dataset.tierIndex);
+      }));
+      listEditor.querySelectorAll("[data-tier]").forEach(zone => {
+        zone.addEventListener("dragover", event => { event.preventDefault(); zone.classList.add("is-over"); });
+        zone.addEventListener("dragleave", () => zone.classList.remove("is-over"));
+        zone.addEventListener("drop", event => {
+          event.preventDefault();
+          zone.classList.remove("is-over");
+          const index = Number(event.dataTransfer.getData("text/plain"));
+          Object.keys(currentState.rankingTiers).forEach(tier => { currentState.rankingTiers[tier] = currentState.rankingTiers[tier].filter(value => value !== index); });
+          if (zone.dataset.tier !== "unassigned") currentState.rankingTiers[zone.dataset.tier].push(index);
+          renderListEditor();
+        });
+      });
+    }
+
+    function renderList(key) {
+      if (key === "hate") {
+        modalItems.innerHTML = tierBoardMarkup(false);
+        modalCounter.textContent = "";
+        modalItems.querySelectorAll("[data-photo-source]").forEach(button => button.addEventListener("click", () => showImagePreview(button.dataset.photoSource, button.dataset.photoName)));
+        return;
+      }
+      const section = content[key];
+      const photos = currentState.photos[key] || [];
+      const links = currentState.links[key] || [];
+      modalItems.innerHTML = section.items.map((item, index) => {
+        const image = photoSources(photos[index]).map(source => `<button class="ranking-image-button" type="button" data-photo-source="${escapeHTML(source)}" data-photo-name="${escapeHTML(item)}"><img src="${source}" alt="Ver ${escapeHTML(item)}"></button>`).join("");
+        const safeLink = /^https?:\/\//i.test(links[index] || "") ? escapeHTML(links[index]) : "";
+        const text = escapeHTML(item);
+        const itemKey = `${key}:${index}`;
+        const reservation = loadReservations()[itemKey];
+        const isMine = window.sharedReservations && window.sharedReservations.isMine(currentState.guideId, itemKey);
+        const buttonText = !sharedReservationsLoaded ? "Cargando..." : reservation ? isMine ? "Quitar mi apartado" : "Apartado" : "Apartar";
+        const buttonDisabled = !sharedReservationsLoaded || (Boolean(reservation) && !isMine);
+        const reservationAction = isViewOnly && key === "want" ? `<span class="item-actions"><button class="reserve-button" type="button" data-reserve-key="${key}" data-reserve-index="${index}" ${buttonDisabled ? "disabled" : ""}>${buttonText}</button></span>` : "";
+        return `<li>${image}<span class="item-content"><span>${text}</span>${safeLink ? `<a class="item-reference" href="${safeLink}" target="_blank" rel="noopener noreferrer">Ver referencia</a>` : ""}${reservationAction}</span></li>`;
+      }).join("");
+      modalCounter.textContent = `${section.items.length} preferencias`;
+      modalItems.querySelectorAll("[data-photo-source]").forEach(button => button.addEventListener("click", () => showImagePreview(button.dataset.photoSource, button.dataset.photoName)));
+      modalItems.querySelectorAll("[data-reserve-key]").forEach(button => button.addEventListener("click", async () => {
+        button.disabled = true;
+        await reserveItem(button.dataset.reserveKey, Number(button.dataset.reserveIndex));
+      }));
+    }
+
+    function renderListEditor() {
+      if (activeListKey === "hate") {
+        listEditor.innerHTML = tierBoardMarkup(true);
+        listEditor.insertAdjacentHTML("beforeend", `<div class="list-editor-actions"><button type="button" class="secondary" id="saveRanking">Guardar cambios</button></div>`);
+        attachTierInteractions();
+        listEditor.querySelector("#saveRanking").addEventListener("click", async () => {
+          await stopListEditing();
+        });
+        return;
+      }
+      const section = content[activeListKey];
+      const photos = currentState.photos[activeListKey] || [];
+      const links = currentState.links[activeListKey] || [];
+      listEditor.innerHTML = section.items.map((item, index) => `
+        <div class="list-editor-row" data-index="${index}">
+          <input type="text" value="${escapeHTML(item)}" aria-label="Elemento ${index + 1}">
+          <input type="url" value="${escapeHTML(links[index] || "")}" placeholder="Enlace de compra (opcional)" aria-label="Enlace del elemento ${index + 1}">
+          ${photoSources(photos[index]).map(source => `<img class="list-item-image" src="${source}" alt="">`).join("") || "<span></span>"}
+          <input type="file" accept="image/*" multiple aria-label="Fotos del elemento ${index + 1}">
+          <button type="button" data-remove="${index}">Borrar</button>
+          ${activeListKey === "hate" ? `<div class="ranking-controls"><button type="button" data-move="up" data-index="${index}" aria-label="Subir regalo">Subir</button><button type="button" data-move="down" data-index="${index}" aria-label="Bajar regalo">Bajar</button></div>` : ""}
+        </div>`).join("");
+      listEditor.insertAdjacentHTML("beforeend", `
+        <div class="list-editor-actions">
+          <button type="button" id="addListItem">Añadir elemento</button>
+          <button type="button" class="secondary" id="saveList">Guardar cambios</button>
+        </div>`);
+      listEditor.querySelectorAll("[data-remove]").forEach(button => button.addEventListener("click", () => {
+        const index = Number(button.dataset.remove);
+        section.items.splice(index, 1);
+        photos.splice(index, 1);
+        links.splice(index, 1);
+        renderListEditor();
+      }));
+      listEditor.querySelectorAll("[data-move]").forEach(button => button.addEventListener("click", () => {
+        const index = Number(button.dataset.index);
+        const direction = button.dataset.move === "up" ? -1 : 1;
+        const target = index + direction;
+        if (target < 0 || target >= section.items.length) return;
+        [section.items[index], section.items[target]] = [section.items[target], section.items[index]];
+        [photos[index], photos[target]] = [photos[target], photos[index]];
+        [links[index], links[target]] = [links[target], links[index]];
+        renderListEditor();
+      }));
+      listEditor.querySelector("#addListItem").addEventListener("click", () => {
+        section.items.push("");
+        photos.push("");
+        links.push("");
+        renderListEditor();
+        const textInputs = listEditor.querySelectorAll('input[type="text"]');
+        textInputs[textInputs.length - 1].focus();
+      });
+      listEditor.querySelector("#saveList").addEventListener("click", async () => {
+        await saveList();
+      });
+      listEditor.querySelectorAll('input[type="file"]').forEach((input, index) => input.addEventListener("change", event => {
+        const files = [...event.target.files];
+        if (!files.length) return;
+        Promise.all(files.map(compressImage)).then(results => {
+          photos[index] = results;
+          renderListEditor();
+        });
+      }));
+    }
+
+    async function saveList() {
+      const section = content[activeListKey];
+      const rows = [...listEditor.querySelectorAll(".list-editor-row")];
+      const nextItems = [];
+      const nextLinks = [];
+      rows.forEach(row => {
+        const text = row.querySelector('input[type="text"]').value.trim();
+        if (!text) return;
+        nextItems.push(text);
+        const link = row.querySelector('input[type="url"]').value.trim();
+        nextLinks.push(/^https?:\/\//i.test(link) ? link : "");
+      });
+      section.items = nextItems;
+      currentState[activeListKey === "not-want" ? "notWant" : activeListKey] = section.items.join("\n");
+      currentState.photos[activeListKey] = (currentState.photos[activeListKey] || []).slice(0, section.items.length);
+      currentState.links[activeListKey] = nextLinks;
+      if (!await saveSharedState()) return;
+      renderList(activeListKey);
+      listEditor.hidden = true;
+      editListButton.textContent = "Editar lista";
+      editListButton.hidden = !isEditable();
+      window.history.replaceState({}, "", `#edit=${currentState.guideId}`);
+      return true;
+    }
+
+    async function stopListEditing() {
+      if (activeListKey === "hate") {
+        currentState.ranking = Object.values(currentState.rankingTiers).flat();
+        if (!await saveSharedState()) return false;
+        renderList("hate");
+        window.history.replaceState({}, "", `#edit=${currentState.guideId}`);
+      } else {
+        if (!await saveList()) return false;
+      }
+      listEditor.hidden = true;
+      modalItems.hidden = false;
+      editListButton.textContent = "Editar lista";
+      editListButton.hidden = !isEditable();
+      return true;
+    }
+
+    function fillEditor(state) {
+      Object.entries(state).forEach(([key, value]) => {
+        const field = editorForm.elements.namedItem(key);
+        if (field) field.value = value;
+      });
+    }
+
+    function openGuideModal() {
+      const links = linksFor(currentState);
+      document.querySelector("#editLink").value = links.edit;
+      guideModal.hidden = false;
+    }
+
+    function startEditor() {
+      if (!isEditable()) return;
+      editorPanel.hidden = false;
+      fillEditor(currentState);
+      editorPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    async function copyText(text) {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const helper = document.createElement("textarea");
+      helper.value = text;
+      helper.style.position = "fixed";
+      helper.style.opacity = "0";
+      document.body.appendChild(helper);
+      helper.select();
+      document.execCommand("copy");
+      helper.remove();
+    }
+
+    function copyLink(id) {
+      const input = document.querySelector(`#${id}`);
+      copyText(input.value).then(() => {
+        const button = document.querySelector(`[data-copy="${id}"]`);
+        const original = button.textContent;
+        button.textContent = "¡Copiado!";
+        setTimeout(() => { button.textContent = original; }, 1400);
+      });
+    }
+
+    const hash = window.location.hash;
+    const isViewOnly = hash.startsWith("#view=");
+    if (isViewOnly) {
+      document.body.classList.add("view-only");
+      document.querySelector("#profileEditButton").hidden = true;
+      document.querySelector("#shareButton").hidden = true;
+      editorPanel.hidden = true;
+    }
+    if (hash === "#new") {
+      renderState(blankState);
+    } else if (hash.startsWith("#view=") || hash.startsWith("#edit=")) {
+      loadSharedGuideFromLink();
+    } else {
+      renderState(loadStoredState());
+    }
+
+    if (isViewOnly && !hasViewerNameEntry()) {
+      nameGateModal.hidden = false;
+      viewerNameInput.focus();
+    }
+
+    window.addEventListener("shared-reservations-ready", startSharedReservations);
+    window.addEventListener("shared-guides-ready", () => {
+      updateEditorAccess();
+      loadSharedGuideFromLink();
+    });
+    window.addEventListener("shared-auth-changed", () => {
+      updateEditorAccess();
+      loadSharedGuideFromLink();
+    });
+    startSharedReservations();
+    updateEditorAccess();
+
+    nameGateForm.addEventListener("submit", event => {
+      event.preventDefault();
+      const name = viewerNameInput.value.trim();
+      localStorage.setItem("wishlist-viewer-name", name);
+      localStorage.setItem("wishlist-viewer-name-set", "true");
+      nameGateModal.hidden = true;
+      if (pendingReservation) {
+        const requestedReservation = pendingReservation;
+        pendingReservation = null;
+        reserveItem(requestedReservation.key, requestedReservation.index);
+      }
+    });
+
+    document.querySelector("#createGuide").addEventListener("click", () => {
+      if (isViewOnly) {
+        window.location.assign(`${window.location.href.split("#")[0]}#new`);
+        return;
+      }
+      openGuideModal();
+    });
+    window.addEventListener("hashchange", () => {
+      if (window.location.hash === "#new") {
+        renderState(blankState);
+        updateEditorAccess();
+      } else if (window.location.hash.startsWith("#edit=") || window.location.hash.startsWith("#view=")) {
+        sharedGuideLoaded = false;
+        sharedGuideExists = false;
+        loadSharedGuideFromLink();
+        updateEditorAccess();
+      }
+    });
+    document.querySelector("#profileEditButton").addEventListener("click", () => {
+      profileForm.elements.name.value = currentState.name;
+      profileForm.elements.date.value = currentState.date;
+      profileForm.elements.hobby.value = currentState.hobby;
+      profileForm.elements.note.value = currentState.note;
+      profileModal.hidden = false;
+      profileForm.elements.name.focus();
+    });
+    document.querySelectorAll('input[name="date"]').forEach(input => {
+      input.addEventListener("input", () => {
+        const numbers = input.value.replace(/\D/g, "").slice(0, 8);
+        const parts = [];
+        if (numbers.length > 0) parts.push(numbers.slice(0, 2));
+        if (numbers.length > 2) parts.push(numbers.slice(2, 4));
+        if (numbers.length > 4) parts.push(numbers.slice(4));
+        input.value = parts.join("-");
+      });
+    });
+    profileForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const nextProfile = Object.fromEntries(new FormData(profileForm).entries());
+      nextProfile.date = normalizeDate(nextProfile.date);
+      if (!nextProfile.date) {
+        profileForm.elements.date.setCustomValidity("Escribe la fecha con 8 números, por ejemplo 05 12 2000.");
+        profileForm.reportValidity();
+        profileForm.elements.date.setCustomValidity("");
+        return;
+      }
+      renderState({ ...currentState, ...nextProfile });
+      if (!await saveSharedState()) return;
+      if (window.location.hash.startsWith("#edit=")) {
+        window.history.replaceState({}, "", `#edit=${currentState.guideId}`);
+      }
+      profileModal.hidden = true;
+    });
+    document.querySelector("#closeProfileModal").addEventListener("click", () => { profileModal.hidden = true; });
+    document.querySelector("#cancelProfileEdit").addEventListener("click", () => { profileModal.hidden = true; });
+    document.querySelector("#closeGiftNameModal").addEventListener("click", () => { giftNameModal.hidden = true; });
+    document.querySelector("#closeImagePreviewModal").addEventListener("click", () => { imagePreviewModal.hidden = true; });
+    document.querySelector("#shareButton").addEventListener("click", () => {
+      const links = linksFor(currentState);
+      copyText(links.view).then(() => {
+        const button = document.querySelector("#shareButton");
+        const original = button.textContent;
+        button.textContent = "¡Enlace copiado!";
+        setTimeout(() => { button.textContent = original; }, 1600);
+      });
+    });
+    document.querySelector("#closeGuideModal").addEventListener("click", () => { guideModal.hidden = true; });
+    document.querySelector("#closeGuide").addEventListener("click", () => { guideModal.hidden = true; });
+    document.querySelector("#goToEditor").addEventListener("click", () => {
+      window.location.href = linksFor(currentState).edit;
+    });
+    document.querySelectorAll("[data-copy]").forEach(button => {
+      button.addEventListener("click", () => copyLink(button.dataset.copy));
+    });
+    editListButton.addEventListener("click", () => {
+      if (!listEditor.hidden) {
+        stopListEditing();
+        return;
+      }
+      listEditor.hidden = false;
+      renderListEditor();
+      editListButton.textContent = "Dejar de editar";
+      if (activeListKey === "hate") modalItems.hidden = true;
+    });
+    editorForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const formData = new FormData(editorForm);
+      const nextState = Object.fromEntries(formData.entries());
+      nextState.guideId = currentState.guideId;
+      nextState.profilePhoto = currentState.profilePhoto;
+      nextState.photos = currentState.photos;
+      nextState.links = currentState.links;
+      nextState.ranking = currentState.ranking;
+      nextState.rankingTiers = currentState.rankingTiers;
+      nextState.date = normalizeDate(nextState.date);
+      if (!nextState.date) {
+        editorForm.elements.date.setCustomValidity("Escribe la fecha con 8 números, por ejemplo 05 12 2000.");
+        editorForm.reportValidity();
+        editorForm.elements.date.setCustomValidity("");
+        return;
+      }
+      renderState(nextState);
+      if (!await saveSharedState()) return;
+      window.history.replaceState({}, "", `#edit=${currentState.guideId}`);
+      openGuideModal();
+    });
+    document.querySelector("#exitEditor").addEventListener("click", () => {
+      editorPanel.hidden = true;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    function openModal(key) {
+      activeListKey = key;
+      const section = content[key];
+      modalTitle.textContent = section.title;
+      renderList(key);
+      editListButton.textContent = "Editar lista";
+      editListButton.hidden = !isEditable();
+      listEditor.hidden = true;
+      modalItems.hidden = false;
+      tabs.forEach(tab => tab.classList.toggle("active", tab.dataset.tab === key));
+      modal.hidden = false;
+      if (closeModal) closeModal.focus();
+    }
+
+    async function hideModal() {
+      if (!listEditor.hidden) {
+        if (!await stopListEditing()) return;
+      }
+      modal.hidden = true;
+    }
+
+    tabs.forEach(tab => tab.addEventListener("click", () => {
+      openModal(tab.dataset.tab);
+    }));
+    closeModal.addEventListener("click", hideModal);
+    document.querySelector("#photoInput").addEventListener("change", async event => {
+      const file = event.target.files[0];
+      if (!file) return;
+      try {
+        const result = await compressImage(file);
+        document.querySelector("#profileImage").src = result;
+        document.querySelector("#photoPreview").classList.add("has-image");
+        currentState.profilePhoto = result;
+        if (!await saveSharedState()) return;
+        if (window.location.hash.startsWith("#edit=")) {
+          window.history.replaceState({}, "", `#edit=${currentState.guideId}`);
+        }
+      } catch (error) {
+        document.querySelector("#saveMessage").textContent = `No se pudo procesar la imagen: ${error.message}`;
+        document.querySelector("#saveMessage").hidden = false;
+      }
+    });
+
+  </script>
+</body>
+</html>
