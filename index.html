@@ -550,10 +550,6 @@
     .name-gate-modal .modal-content { width: min(440px, 100%); }
     .name-gate-form { display: grid; gap: 10px; margin-top: 18px; }
     .name-gate-form input { width: 100%; padding: 10px; border: 2px solid #E8DEF1; border-radius: 8px; background: var(--paper); color: var(--ink); font: inherit; }
-    .reservation-message { margin: 15px 0 0; color: #9b3f35; font-size: .88rem; font-weight: 800; }
-    .editor-access-message { margin: 15px 0 0; color: var(--muted); font-size: .9rem; text-align: center; }
-    .editor-access-message a { color: var(--ink); font-weight: 800; }
-    .reserve-button:disabled { cursor: not-allowed; opacity: .62; }
 
     .list-editor { display: grid; gap: 11px; margin-top: 18px; }
     .list-editor[hidden], .modal .items[hidden] { display: none; }
@@ -789,8 +785,6 @@
       <p class="guide-tagline">Guía para hacerme el regalo perfecto</p>
       <button class="create-guide" id="createGuide" type="button">Crear mi Guía</button>
     </header>
-    <p class="reservation-message save-message" id="saveMessage" role="status" aria-live="polite" hidden></p>
-    <p class="editor-access-message" id="editorAccessMessage" hidden>Para editar, inicia sesión con tu cuenta administradora en <a href="admin.html">Administración</a>.</p>
 
     <section class="editor-panel" id="editorPanel" hidden aria-label="Editor de guía">
       <div class="panel-heading">
@@ -852,8 +846,6 @@
           <h2 id="modalTitle">Lo que no quiero</h2>
           <span class="counter" id="modalCounter">4 preferencias</span>
         </div>
-        <p class="reservation-message" id="reservationMessage" role="status" aria-live="polite" hidden></p>
-          <p class="reservation-message save-message" role="status" aria-live="polite" hidden></p>
         <ul class="items" id="modalItems"></ul>
         <div class="list-editor" id="listEditor" hidden></div>
       </div>
@@ -877,9 +869,9 @@
     <div class="modal name-gate-modal" id="nameGateModal" role="dialog" aria-modal="true" aria-labelledby="nameGateTitle" hidden>
       <div class="modal-content">
         <h2 id="nameGateTitle">¿Cuál es tu nombre?</h2>
-        <p>Si quieres, escribe tu nombre para identificar el apartado.</p>
+        <p>Escríbelo para poder apartar un regalo.</p>
         <form class="name-gate-form" id="nameGateForm">
-          <input id="viewerName" name="viewerName" maxlength="50" autocomplete="name" placeholder="Tu nombre (opcional)">
+          <input id="viewerName" name="viewerName" required maxlength="50" autocomplete="name" placeholder="Tu nombre">
           <button class="small-button" type="submit">Continuar</button>
         </form>
       </div>
@@ -910,7 +902,6 @@
         <div class="panel-heading">
           <h2 id="profileModalTitle">Editar ficha</h2>
         </div>
-        <p class="reservation-message save-message" role="status" aria-live="polite" hidden></p>
         <form class="profile-form" id="profileForm">
           <label>Nombre<input name="name" required></label>
           <label>Fecha especial<input name="date" inputmode="numeric" placeholder="DD MM AAAA" required></label>
@@ -927,8 +918,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-    import { getFirestore, collection, doc, getDoc, getDocFromServer, onSnapshot, serverTimestamp, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, onSnapshot, runTransaction, setDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAtV3NTAVlKOq_5KIJV9jEgp4gFyhV57Xk",
@@ -939,71 +929,40 @@
       appId: "1:33535489851:web:5d45915130f8a5fe22e91e",
       measurementId: "G-S3T1N6FEXN"
     };
-    const ADMIN_EMAIL = "ayelencononir@gmail.com".toLowerCase();
 
     try {
       const app = initializeApp(firebaseConfig);
       const database = getFirestore(app);
-      const auth = getAuth(app);
       window.sharedReservations = {
         listen(guideId, callback) {
-          return onSnapshot(collection(database, "wishlistReservationStatus", guideId, "items"), snapshot => {
-            callback(Object.fromEntries(snapshot.docs.map(item => [item.id, true])), null);
-          }, error => callback({}, error));
+          return onSnapshot(doc(database, "wishlistReservations", guideId), snapshot => {
+            callback(snapshot.exists() ? snapshot.data() : {});
+          }, () => callback({}));
         },
         async toggle(guideId, itemKey, name) {
-          const user = auth.currentUser || (await signInAnonymously(auth)).user;
-          const statusRef = doc(database, "wishlistReservationStatus", guideId, "items", itemKey);
-          const detailRef = doc(database, "wishlistReservations", guideId, "items", itemKey);
-          const status = await getDoc(statusRef);
-          const batch = writeBatch(database);
-          const mine = this.isMine(guideId, itemKey);
-          if (status.exists()) {
-            if (!mine) throw new Error("Este regalo ya fue apartado por otra persona.");
-            batch.delete(statusRef);
-            batch.delete(detailRef);
-          } else {
-            batch.set(statusRef, { reserved: true });
-            batch.set(detailRef, { uid: user.uid, name: name.slice(0, 50), createdAt: serverTimestamp() });
-          }
-          await batch.commit();
-          const owned = this.ownedItems(guideId);
-          if (status.exists()) owned.delete(itemKey);
-          else owned.add(itemKey);
-          localStorage.setItem(`wishlist-owned-reservations-${guideId}`, JSON.stringify([...owned]));
-        },
-        ownedItems(guideId) {
-          try {
-            return new Set(JSON.parse(localStorage.getItem(`wishlist-owned-reservations-${guideId}`)) || []);
-          } catch {
-            return new Set();
-          }
-        },
-        isMine(guideId, itemKey) {
-          return this.ownedItems(guideId).has(itemKey);
+          const reservationRef = doc(database, "wishlistReservations", guideId);
+          await runTransaction(database, async transaction => {
+            const snapshot = await transaction.get(reservationRef);
+            const reservations = snapshot.exists() ? snapshot.data() : {};
+            if (reservations[itemKey] && reservations[itemKey] !== name) return;
+            if (reservations[itemKey] === name) {
+              delete reservations[itemKey];
+            } else {
+              reservations[itemKey] = name;
+            }
+            transaction.set(reservationRef, reservations);
+          });
         }
       };
       window.sharedGuides = {
-        canEdit() {
-          const user = auth.currentUser;
-          return ADMIN_EMAIL !== "REEMPLAZAR_CON_TU_CORREO_VERIFICADO" &&
-            user && !user.isAnonymous && user.emailVerified && user.email?.toLowerCase() === ADMIN_EMAIL;
-        },
         async load(guideId) {
-          const snapshot = await getDocFromServer(doc(database, "wishlistGuides", guideId));
+          const snapshot = await getDoc(doc(database, "wishlistGuides", guideId));
           return snapshot.exists() ? snapshot.data() : null;
         },
-        listen(guideId, callback) {
-          return onSnapshot(doc(database, "wishlistGuides", guideId), snapshot => {
-            callback(snapshot.exists() ? snapshot.data() : null, null);
-          }, error => callback(null, error));
-        },
         async save(state) {
-          if (!this.canEdit()) throw new Error("Inicia sesión con la cuenta administradora verificada desde admin.html antes de editar.");
           await setDoc(doc(database, "wishlistGuides", state.guideId), state);
         }
       };
-      onAuthStateChanged(auth, () => window.dispatchEvent(new Event("shared-auth-changed")));
       window.dispatchEvent(new Event("shared-reservations-ready"));
       window.dispatchEvent(new Event("shared-guides-ready"));
     } catch {
@@ -1081,7 +1040,6 @@
     const nameGateModal = document.querySelector("#nameGateModal");
     const nameGateForm = document.querySelector("#nameGateForm");
     const viewerNameInput = document.querySelector("#viewerName");
-    const reservationMessage = document.querySelector("#reservationMessage");
     const closeModal = document.querySelector("#closeModal");
     const guideModal = document.querySelector("#guideModal");
     const editorPanel = document.querySelector("#editorPanel");
@@ -1094,11 +1052,7 @@
     let sharedReservationsLoaded = false;
     let stopSharedReservations = null;
     let sharedReservationGuideId = "";
-    let stopSharedGuide = null;
-    let sharedGuideListenerId = "";
-    let pendingReservation = null;
-    let sharedGuideLoaded = false;
-    let sharedGuideExists = false;
+    let pendingSharedState = null;
 
     function loadStoredState() {
       try {
@@ -1109,23 +1063,29 @@
       }
     }
 
-    async function saveSharedState(state = currentState) {
-      const saveMessages = document.querySelectorAll(".save-message");
-      saveMessages.forEach(message => {
-        message.textContent = "Guardando cambios en Firestore...";
-        message.hidden = false;
-      });
+    function persistState(state = currentState) {
       try {
-        if (!window.sharedGuides) throw new Error("Firebase no está disponible. Comprueba tu conexión e inténtalo de nuevo.");
-        await window.sharedGuides.save(state);
-        sharedGuideExists = true;
-        updateEditorAccess();
-        saveMessages.forEach(message => { message.textContent = "Cambios guardados y sincronizados."; });
-        return true;
-      } catch (error) {
-        saveMessages.forEach(message => { message.textContent = `No se guardaron los cambios. ${error.message}`; });
-        return false;
+        localStorage.setItem(storageKey, JSON.stringify(state));
+      } catch {
+        return;
       }
+    }
+
+    function saveSharedState(state = currentState) {
+      if (window.sharedGuides) {
+        window.sharedGuides.save(state).then(() => {
+          pendingSharedState = null;
+        }).catch(error => {
+          pendingSharedState = state;
+          console.error("No se pudo sincronizar la guía", error);
+        });
+      } else {
+        pendingSharedState = state;
+      }
+    }
+
+    function flushPendingSharedState() {
+      if (pendingSharedState && window.sharedGuides) saveSharedState(pendingSharedState);
     }
 
     function reservationsKey() {
@@ -1133,7 +1093,12 @@
     }
 
     function loadReservations() {
-      return sharedReservationState;
+      if (sharedReservationsLoaded) return sharedReservationState;
+      try {
+        return JSON.parse(localStorage.getItem(reservationsKey())) || {};
+      } catch {
+        return {};
+      }
     }
 
     function startSharedReservations() {
@@ -1146,16 +1111,9 @@
       }
       if (stopSharedReservations) return;
       sharedReservationGuideId = currentState.guideId;
-      stopSharedReservations = window.sharedReservations.listen(currentState.guideId, (reservations, error) => {
-        if (error) {
-          sharedReservationsLoaded = false;
-          reservationMessage.textContent = "No se pudo consultar el estado de las reservas. Recarga la página o inténtalo más tarde.";
-          reservationMessage.hidden = false;
-          return;
-        }
+      stopSharedReservations = window.sharedReservations.listen(currentState.guideId, reservations => {
         sharedReservationState = reservations;
         sharedReservationsLoaded = true;
-        reservationMessage.hidden = true;
         if (!modal.hidden) renderList(activeListKey);
       });
     }
@@ -1164,42 +1122,15 @@
       if (!window.sharedGuides || !(window.location.hash.startsWith("#view=") || window.location.hash.startsWith("#edit="))) return;
       const encodedValue = window.location.hash.slice(6);
       const encodedState = decodeState(encodedValue);
-      const guideId = encodedState && encodedState.guideId ? encodedState.guideId : decodeURIComponent(encodedValue);
+      const guideId = encodedState && encodedState.guideId ? encodedState.guideId : encodedValue;
       try {
         const sharedState = await window.sharedGuides.load(guideId);
-        if (!sharedState) {
-          sharedGuideExists = false;
-          if (window.sharedGuides.canEdit() && currentState.guideId === guideId) {
-            sharedGuideLoaded = true;
-            updateEditorAccess();
-            return;
-          }
-          document.querySelector("#saveMessage").textContent = "No se encontró esta wishlist en Firestore. Verifica que el enlace y el guideId sean correctos.";
-          document.querySelector("#saveMessage").hidden = false;
-          return;
-        }
-        sharedGuideExists = true;
+        if (!sharedState) return;
         renderState(sharedState);
-        sharedGuideLoaded = true;
-        updateEditorAccess();
+        if (window.location.hash.startsWith("#edit=") && !isPageReload) startEditor();
         startSharedReservations();
-        if (isViewOnly && sharedGuideListenerId !== guideId) {
-          if (stopSharedGuide) stopSharedGuide();
-          sharedGuideListenerId = guideId;
-          stopSharedGuide = window.sharedGuides.listen(guideId, (latestState, error) => {
-            if (error) {
-              document.querySelector("#saveMessage").textContent = "No se pudo sincronizar esta wishlist en tiempo real. Recarga para volver a intentarlo.";
-              document.querySelector("#saveMessage").hidden = false;
-              return;
-            }
-            if (!latestState) return;
-            renderState(latestState);
-            if (!modal.hidden) renderList(activeListKey);
-          });
-        }
       } catch {
-        document.querySelector("#saveMessage").textContent = "No se pudo cargar la wishlist desde Firestore. Comprueba la conexión y las reglas de lectura.";
-        document.querySelector("#saveMessage").hidden = false;
+        return;
       }
     }
 
@@ -1207,43 +1138,36 @@
       return localStorage.getItem("wishlist-viewer-name") || "";
     }
 
-    function hasViewerNameEntry() {
-      return localStorage.getItem("wishlist-viewer-name-set") === "true";
-    }
-
     async function reserveItem(key, index) {
-      if (!hasViewerNameEntry()) {
-        pendingReservation = { key, index };
-        nameGateModal.hidden = false;
-        viewerNameInput.focus();
-        return;
-      }
-      if (!window.sharedReservations || !sharedReservationsLoaded) {
-        reservationMessage.textContent = "No se puede confirmar el apartado ahora. Comprueba la conexión e inténtalo de nuevo.";
-        reservationMessage.hidden = false;
-        return;
-      }
       const name = viewerName();
+      if (!name) return;
       const itemKey = `${key}:${index}`;
-      reservationMessage.hidden = true;
-      try {
-        await window.sharedReservations.toggle(currentState.guideId, itemKey, name);
-        sharedReservationState[itemKey] = sharedReservations.isMine(currentState.guideId, itemKey);
-        if (!sharedReservationState[itemKey]) delete sharedReservationState[itemKey];
-        renderList(key);
-      } catch (error) {
-        const latestStatus = await getReservationStatus(itemKey);
-        reservationMessage.textContent = latestStatus
-          ? "Este regalo acaba de ser apartado por otra persona."
-          : "No se pudo guardar el apartado en Firestore. Comprueba la conexión e inténtalo de nuevo.";
-        reservationMessage.hidden = false;
-        renderList(key);
+      if (window.sharedReservations) {
+        try {
+          await window.sharedReservations.toggle(currentState.guideId, itemKey, name);
+          return;
+        } catch {
+          window.sharedReservations = null;
+        }
       }
+      const reservations = loadReservations();
+      if (reservations[itemKey] && reservations[itemKey] !== name) return;
+      if (reservations[itemKey] === name) {
+        delete reservations[itemKey];
+      } else {
+        reservations[itemKey] = name;
+      }
+      localStorage.setItem(reservationsKey(), JSON.stringify(reservations));
+      renderList(key);
     }
 
-    async function getReservationStatus(itemKey) {
-      if (!window.sharedReservations || !sharedReservationsLoaded) return false;
-      return Boolean(sharedReservationState[itemKey]);
+    function latestSharedState(sharedState) {
+      try {
+        const stored = JSON.parse(localStorage.getItem(storageKey));
+        return stored && stored.guideId === sharedState.guideId ? stored : sharedState;
+      } catch {
+        return sharedState;
+      }
     }
 
     function encodeState(state) {
@@ -1291,19 +1215,7 @@
     }
 
     function isEditable() {
-      return !isViewOnly && window.sharedGuides?.canEdit() === true;
-    }
-
-    function updateEditorAccess() {
-      const authorized = window.sharedGuides?.canEdit() === true;
-      document.querySelector("#profileEditButton").hidden = isViewOnly || !authorized;
-      document.querySelector("#shareButton").hidden = isViewOnly || !authorized || !sharedGuideExists;
-      document.querySelector("#createGuide").hidden = !authorized;
-      document.querySelector("#editorAccessMessage").hidden = isViewOnly || authorized || !window.location.hash.startsWith("#edit=");
-      editListButton.hidden = !isEditable();
-      if (!authorized) editorPanel.hidden = true;
-      if (authorized && window.location.hash.startsWith("#new")) startEditor();
-      if (authorized && sharedGuideLoaded && window.location.hash.startsWith("#edit=")) startEditor();
+      return !isViewOnly;
     }
 
     function escapeHTML(value) {
@@ -1431,20 +1343,13 @@
         const image = photoSources(photos[index]).map(source => `<button class="ranking-image-button" type="button" data-photo-source="${escapeHTML(source)}" data-photo-name="${escapeHTML(item)}"><img src="${source}" alt="Ver ${escapeHTML(item)}"></button>`).join("");
         const safeLink = /^https?:\/\//i.test(links[index] || "") ? escapeHTML(links[index]) : "";
         const text = escapeHTML(item);
-        const itemKey = `${key}:${index}`;
-        const reservation = loadReservations()[itemKey];
-        const isMine = window.sharedReservations && window.sharedReservations.isMine(currentState.guideId, itemKey);
-        const buttonText = !sharedReservationsLoaded ? "Cargando..." : reservation ? isMine ? "Quitar mi apartado" : "Apartado" : "Apartar";
-        const buttonDisabled = !sharedReservationsLoaded || (Boolean(reservation) && !isMine);
-        const reservationAction = isViewOnly && key === "want" ? `<span class="item-actions"><button class="reserve-button" type="button" data-reserve-key="${key}" data-reserve-index="${index}" ${buttonDisabled ? "disabled" : ""}>${buttonText}</button></span>` : "";
+        const reservation = loadReservations()[`${key}:${index}`];
+        const reservationAction = isViewOnly && key === "want" ? `<span class="item-actions"><button class="reserve-button" type="button" data-reserve-key="${key}" data-reserve-index="${index}">${reservation === viewerName() ? "Quitar apartado" : reservation ? "Apartado" : "Apartar"}</button>${reservation ? `<span class="reserved-by">${escapeHTML(reservation)}</span>` : ""}</span>` : "";
         return `<li>${image}<span class="item-content"><span>${text}</span>${safeLink ? `<a class="item-reference" href="${safeLink}" target="_blank" rel="noopener noreferrer">Ver referencia</a>` : ""}${reservationAction}</span></li>`;
       }).join("");
       modalCounter.textContent = `${section.items.length} preferencias`;
       modalItems.querySelectorAll("[data-photo-source]").forEach(button => button.addEventListener("click", () => showImagePreview(button.dataset.photoSource, button.dataset.photoName)));
-      modalItems.querySelectorAll("[data-reserve-key]").forEach(button => button.addEventListener("click", async () => {
-        button.disabled = true;
-        await reserveItem(button.dataset.reserveKey, Number(button.dataset.reserveIndex));
-      }));
+      modalItems.querySelectorAll("[data-reserve-key]").forEach(button => button.addEventListener("click", () => reserveItem(button.dataset.reserveKey, Number(button.dataset.reserveIndex))));
     }
 
     function renderListEditor() {
@@ -1452,8 +1357,8 @@
         listEditor.innerHTML = tierBoardMarkup(true);
         listEditor.insertAdjacentHTML("beforeend", `<div class="list-editor-actions"><button type="button" class="secondary" id="saveRanking">Guardar cambios</button></div>`);
         attachTierInteractions();
-        listEditor.querySelector("#saveRanking").addEventListener("click", async () => {
-          await stopListEditing();
+        listEditor.querySelector("#saveRanking").addEventListener("click", () => {
+          stopListEditing();
         });
         return;
       }
@@ -1499,9 +1404,7 @@
         const textInputs = listEditor.querySelectorAll('input[type="text"]');
         textInputs[textInputs.length - 1].focus();
       });
-      listEditor.querySelector("#saveList").addEventListener("click", async () => {
-        await saveList();
-      });
+      listEditor.querySelector("#saveList").addEventListener("click", saveList);
       listEditor.querySelectorAll('input[type="file"]').forEach((input, index) => input.addEventListener("change", event => {
         const files = [...event.target.files];
         if (!files.length) return;
@@ -1512,7 +1415,7 @@
       }));
     }
 
-    async function saveList() {
+    function saveList() {
       const section = content[activeListKey];
       const rows = [...listEditor.querySelectorAll(".list-editor-row")];
       const nextItems = [];
@@ -1528,29 +1431,29 @@
       currentState[activeListKey === "not-want" ? "notWant" : activeListKey] = section.items.join("\n");
       currentState.photos[activeListKey] = (currentState.photos[activeListKey] || []).slice(0, section.items.length);
       currentState.links[activeListKey] = nextLinks;
-      if (!await saveSharedState()) return;
+      persistState();
+      saveSharedState();
       renderList(activeListKey);
       listEditor.hidden = true;
       editListButton.textContent = "Editar lista";
       editListButton.hidden = !isEditable();
       window.history.replaceState({}, "", `#edit=${currentState.guideId}`);
-      return true;
     }
 
-    async function stopListEditing() {
+    function stopListEditing() {
       if (activeListKey === "hate") {
         currentState.ranking = Object.values(currentState.rankingTiers).flat();
-        if (!await saveSharedState()) return false;
+        persistState();
+        saveSharedState();
         renderList("hate");
         window.history.replaceState({}, "", `#edit=${currentState.guideId}`);
       } else {
-        if (!await saveList()) return false;
+        saveList();
       }
       listEditor.hidden = true;
       modalItems.hidden = false;
       editListButton.textContent = "Editar lista";
       editListButton.hidden = !isEditable();
-      return true;
     }
 
     function fillEditor(state) {
@@ -1567,7 +1470,6 @@
     }
 
     function startEditor() {
-      if (!isEditable()) return;
       editorPanel.hidden = false;
       fillEditor(currentState);
       editorPanel.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1600,6 +1502,8 @@
 
     const hash = window.location.hash;
     const isViewOnly = hash.startsWith("#view=");
+    const navigationEntry = performance.getEntriesByType("navigation")[0];
+    const isPageReload = navigationEntry && navigationEntry.type === "reload";
     if (isViewOnly) {
       document.body.classList.add("view-only");
       document.querySelector("#profileEditButton").hidden = true;
@@ -1608,40 +1512,36 @@
     }
     if (hash === "#new") {
       renderState(blankState);
+      startEditor();
     } else if (hash.startsWith("#view=") || hash.startsWith("#edit=")) {
-      loadSharedGuideFromLink();
+      const sharedState = decodeState(hash.slice(6));
+      const currentSharedState = sharedState ? latestSharedState(sharedState) : null;
+      if (currentSharedState) renderState(currentSharedState);
+      if (hash.startsWith("#edit=") && currentSharedState && !isPageReload) startEditor();
     } else {
       renderState(loadStoredState());
     }
 
-    if (isViewOnly && !hasViewerNameEntry()) {
+    if (isViewOnly && !viewerName()) {
       nameGateModal.hidden = false;
       viewerNameInput.focus();
     }
 
     window.addEventListener("shared-reservations-ready", startSharedReservations);
     window.addEventListener("shared-guides-ready", () => {
-      updateEditorAccess();
-      loadSharedGuideFromLink();
-    });
-    window.addEventListener("shared-auth-changed", () => {
-      updateEditorAccess();
+      flushPendingSharedState();
       loadSharedGuideFromLink();
     });
     startSharedReservations();
-    updateEditorAccess();
+    flushPendingSharedState();
+    loadSharedGuideFromLink();
 
     nameGateForm.addEventListener("submit", event => {
       event.preventDefault();
       const name = viewerNameInput.value.trim();
+      if (!name) return;
       localStorage.setItem("wishlist-viewer-name", name);
-      localStorage.setItem("wishlist-viewer-name-set", "true");
       nameGateModal.hidden = true;
-      if (pendingReservation) {
-        const requestedReservation = pendingReservation;
-        pendingReservation = null;
-        reserveItem(requestedReservation.key, requestedReservation.index);
-      }
     });
 
     document.querySelector("#createGuide").addEventListener("click", () => {
@@ -1652,15 +1552,7 @@
       openGuideModal();
     });
     window.addEventListener("hashchange", () => {
-      if (window.location.hash === "#new") {
-        renderState(blankState);
-        updateEditorAccess();
-      } else if (window.location.hash.startsWith("#edit=") || window.location.hash.startsWith("#view=")) {
-        sharedGuideLoaded = false;
-        sharedGuideExists = false;
-        loadSharedGuideFromLink();
-        updateEditorAccess();
-      }
+      if (window.location.hash === "#new") window.location.reload();
     });
     document.querySelector("#profileEditButton").addEventListener("click", () => {
       profileForm.elements.name.value = currentState.name;
@@ -1680,7 +1572,7 @@
         input.value = parts.join("-");
       });
     });
-    profileForm.addEventListener("submit", async event => {
+    profileForm.addEventListener("submit", event => {
       event.preventDefault();
       const nextProfile = Object.fromEntries(new FormData(profileForm).entries());
       nextProfile.date = normalizeDate(nextProfile.date);
@@ -1691,7 +1583,8 @@
         return;
       }
       renderState({ ...currentState, ...nextProfile });
-      if (!await saveSharedState()) return;
+      persistState();
+      saveSharedState();
       if (window.location.hash.startsWith("#edit=")) {
         window.history.replaceState({}, "", `#edit=${currentState.guideId}`);
       }
@@ -1728,7 +1621,7 @@
       editListButton.textContent = "Dejar de editar";
       if (activeListKey === "hate") modalItems.hidden = true;
     });
-    editorForm.addEventListener("submit", async event => {
+    editorForm.addEventListener("submit", event => {
       event.preventDefault();
       const formData = new FormData(editorForm);
       const nextState = Object.fromEntries(formData.entries());
@@ -1746,7 +1639,8 @@
         return;
       }
       renderState(nextState);
-      if (!await saveSharedState()) return;
+      persistState();
+      saveSharedState();
       window.history.replaceState({}, "", `#edit=${currentState.guideId}`);
       openGuideModal();
     });
@@ -1769,9 +1663,9 @@
       if (closeModal) closeModal.focus();
     }
 
-    async function hideModal() {
+    function hideModal() {
       if (!listEditor.hidden) {
-        if (!await stopListEditing()) return;
+        stopListEditing();
       }
       modal.hidden = true;
     }
@@ -1780,22 +1674,19 @@
       openModal(tab.dataset.tab);
     }));
     closeModal.addEventListener("click", hideModal);
-    document.querySelector("#photoInput").addEventListener("change", async event => {
+    document.querySelector("#photoInput").addEventListener("change", event => {
       const file = event.target.files[0];
       if (!file) return;
-      try {
-        const result = await compressImage(file);
+      compressImage(file).then(result => {
         document.querySelector("#profileImage").src = result;
         document.querySelector("#photoPreview").classList.add("has-image");
         currentState.profilePhoto = result;
-        if (!await saveSharedState()) return;
+        persistState();
+        saveSharedState();
         if (window.location.hash.startsWith("#edit=")) {
           window.history.replaceState({}, "", `#edit=${currentState.guideId}`);
         }
-      } catch (error) {
-        document.querySelector("#saveMessage").textContent = `No se pudo procesar la imagen: ${error.message}`;
-        document.querySelector("#saveMessage").hidden = false;
-      }
+      }).catch(error => console.error("No se pudo cargar la foto", error));
     });
 
   </script>
