@@ -1053,6 +1053,7 @@
     let stopSharedReservations = null;
     let sharedReservationGuideId = "";
     let pendingSharedState = null;
+    let sharedSaveQueue = Promise.resolve();
 
     function loadStoredState() {
       try {
@@ -1071,21 +1072,32 @@
       }
     }
 
-    function saveSharedState(state = currentState) {
-      if (window.sharedGuides) {
-        window.sharedGuides.save(state).then(() => {
-          pendingSharedState = null;
-        }).catch(error => {
-          pendingSharedState = state;
-          console.error("No se pudo sincronizar la guía", error);
-        });
-      } else {
-        pendingSharedState = state;
+    async function saveSharedState(state = currentState) {
+      const stateToSave = JSON.parse(JSON.stringify(state));
+      const stateSize = new TextEncoder().encode(JSON.stringify(stateToSave)).length;
+      if (stateSize > 900_000) {
+        pendingSharedState = null;
+        alert("La guía y sus imágenes superan el límite de almacenamiento. Quita algunas imágenes y vuelve a guardar para compartir los cambios.");
+        return false;
+      }
+      pendingSharedState = stateToSave;
+      if (!window.sharedGuides) return false;
+
+      sharedSaveQueue = sharedSaveQueue.catch(() => {}).then(() => window.sharedGuides.save(stateToSave));
+      try {
+        await sharedSaveQueue;
+        if (pendingSharedState === stateToSave) pendingSharedState = null;
+        return true;
+      } catch (error) {
+        console.error("No se pudo sincronizar la guía", error);
+        alert("No se pudieron sincronizar los cambios con la nube. Comprueba tu conexión e inténtalo de nuevo.");
+        return false;
       }
     }
 
     function flushPendingSharedState() {
-      if (pendingSharedState && window.sharedGuides) saveSharedState(pendingSharedState);
+      if (pendingSharedState && window.sharedGuides) return saveSharedState(pendingSharedState);
+      return Promise.resolve(true);
     }
 
     function reservationsKey() {
@@ -1594,10 +1606,14 @@
     document.querySelector("#cancelProfileEdit").addEventListener("click", () => { profileModal.hidden = true; });
     document.querySelector("#closeGiftNameModal").addEventListener("click", () => { giftNameModal.hidden = true; });
     document.querySelector("#closeImagePreviewModal").addEventListener("click", () => { imagePreviewModal.hidden = true; });
-    document.querySelector("#shareButton").addEventListener("click", () => {
+    document.querySelector("#shareButton").addEventListener("click", async () => {
+      const button = document.querySelector("#shareButton");
+      button.disabled = true;
+      const saved = await saveSharedState();
+      button.disabled = false;
+      if (!saved) return;
       const links = linksFor(currentState);
       copyText(links.view).then(() => {
-        const button = document.querySelector("#shareButton");
         const original = button.textContent;
         button.textContent = "¡Enlace copiado!";
         setTimeout(() => { button.textContent = original; }, 1600);
