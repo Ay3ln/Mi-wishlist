@@ -937,7 +937,10 @@
         listen(guideId, callback) {
           return onSnapshot(doc(database, "wishlistReservations", guideId), snapshot => {
             callback(snapshot.exists() ? snapshot.data() : {});
-          }, () => callback({}));
+          }, error => {
+            window.logWishlistFirestoreError("onSnapshot", "wishlistReservations", error);
+            callback({});
+          });
         },
         async toggle(guideId, itemKey, name) {
           const reservationRef = doc(database, "wishlistReservations", guideId);
@@ -965,7 +968,8 @@
       };
       window.dispatchEvent(new Event("shared-reservations-ready"));
       window.dispatchEvent(new Event("shared-guides-ready"));
-    } catch {
+    } catch (error) {
+      window.logWishlistFirestoreError("initializeApp/getFirestore", "(default)", error);
       window.sharedReservations = null;
       window.sharedGuides = null;
       window.dispatchEvent(new Event("shared-reservations-ready"));
@@ -974,6 +978,16 @@
   </script>
 
   <script>
+    window.logWishlistFirestoreError = (operation, collection, error) => {
+      console.error("[Firestore] Operation failed", {
+        projectId: "wishlist-aef0f",
+        operation,
+        collection,
+        code: typeof error?.code === "string" ? error.code : "unknown",
+        message: typeof error?.message === "string" ? error.message : String(error)
+      });
+    };
+
     let content = {
       "not-want": {
         title: "Lo que no quiero",
@@ -1089,7 +1103,7 @@
         if (pendingSharedState === stateToSave) pendingSharedState = null;
         return true;
       } catch (error) {
-        console.error("No se pudo sincronizar la guía", error);
+        window.logWishlistFirestoreError("setDoc", "wishlistGuides", error);
         alert("No se pudieron sincronizar los cambios con la nube. Comprueba tu conexión e inténtalo de nuevo.");
         return false;
       }
@@ -1141,7 +1155,8 @@
         renderState(sharedState);
         if (window.location.hash.startsWith("#edit=") && !isPageReload) startEditor();
         startSharedReservations();
-      } catch {
+      } catch (error) {
+        window.logWishlistFirestoreError("getDoc", "wishlistGuides", error);
         return;
       }
     }
@@ -1158,7 +1173,8 @@
         try {
           await window.sharedReservations.toggle(currentState.guideId, itemKey, name);
           return;
-        } catch {
+        } catch (error) {
+          window.logWishlistFirestoreError("runTransaction", "wishlistReservations", error);
           window.sharedReservations = null;
         }
       }
