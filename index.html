@@ -1155,7 +1155,7 @@
         const sharedState = await window.sharedGuides.load(guideId);
         if (!sharedState) return;
         renderState(sharedState);
-        if (window.location.hash.startsWith("#edit=") && !isPageReload) startEditor();
+        if (window.location.hash.startsWith("#edit=")) startEditor();
         startSharedReservations();
       } catch (error) {
         window.logWishlistFirestoreError("getDoc", "wishlistGuides", error);
@@ -1532,8 +1532,6 @@
 
     const hash = window.location.hash;
     const isViewOnly = hash.startsWith("#view=");
-    const navigationEntry = performance.getEntriesByType("navigation")[0];
-    const isPageReload = navigationEntry && navigationEntry.type === "reload";
     if (isViewOnly) {
       document.body.classList.add("view-only");
       document.querySelector("#profileEditButton").hidden = true;
@@ -1547,7 +1545,7 @@
       const sharedState = decodeState(hash.slice(6));
       const currentSharedState = sharedState ? latestSharedState(sharedState) : null;
       if (currentSharedState) renderState(currentSharedState);
-      if (hash.startsWith("#edit=") && currentSharedState && !isPageReload) startEditor();
+      if (hash.startsWith("#edit=") && currentSharedState) startEditor();
     } else {
       renderState(loadStoredState());
     }
