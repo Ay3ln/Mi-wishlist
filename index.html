@@ -1090,6 +1090,7 @@
 
     async function saveSharedState(state = currentState) {
       const stateToSave = JSON.parse(JSON.stringify(state));
+      stateToSave.photos = photosForFirestore(stateToSave.photos);
       const stateSize = new TextEncoder().encode(JSON.stringify(stateToSave)).length;
       if (stateSize > 900_000) {
         pendingSharedState = null;
@@ -1106,7 +1107,9 @@
         return true;
       } catch (error) {
         window.logWishlistFirestoreError("setDoc", "wishlistGuides", error);
-        alert("No se pudieron sincronizar los cambios con la nube. Comprueba tu conexión e inténtalo de nuevo.");
+        const code = typeof error?.code === "string" ? error.code : "unknown";
+        const details = typeof error?.message === "string" ? error.message : String(error);
+        alert(`No se pudieron sincronizar los cambios con la nube. Error de Firestore (${code}): ${details}`);
         return false;
       }
     }
@@ -1228,7 +1231,7 @@
 
     function renderState(state) {
       currentState = { ...defaultState, ...state };
-      currentState.photos = { ...defaultState.photos, ...(state.photos || {}) };
+      currentState.photos = normalizePhotos(state.photos);
       currentState.links = { ...defaultState.links, ...(state.links || {}) };
       currentState.ranking = Array.isArray(state.ranking) ? state.ranking : [...defaultState.ranking];
       currentState.rankingTiers = normalizeRankingTiers(state.rankingTiers);
@@ -1260,6 +1263,27 @@
 
     function photoSources(value) {
       return Array.isArray(value) ? value.filter(Boolean) : value ? [value] : [];
+    }
+
+    function normalizePhotos(photos) {
+      const sections = { ...defaultState.photos, ...(photos || {}) };
+      return Object.fromEntries(Object.entries(sections).map(([key, items]) => {
+        if (Array.isArray(items)) return [key, items];
+        if (items && typeof items === "object") {
+          const restoredItems = Object.entries(items)
+            .sort(([left], [right]) => Number(left) - Number(right))
+            .map(([, sources]) => sources);
+          return [key, restoredItems];
+        }
+        return [key, []];
+      }));
+    }
+
+    function photosForFirestore(photos) {
+      return Object.fromEntries(Object.entries(normalizePhotos(photos)).map(([key, items]) => [
+        key,
+        Object.fromEntries(items.map((sources, index) => [String(index), photoSources(sources)]))
+      ]));
     }
 
     function compressImage(file) {
