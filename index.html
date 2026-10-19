@@ -1081,8 +1081,10 @@
     function persistState(state = currentState) {
       try {
         localStorage.setItem(storageKey, JSON.stringify(state));
+        return true;
       } catch {
-        return;
+        alert("No se pudieron guardar los cambios en este navegador porque se agotó el espacio disponible. Quita algunas imágenes y vuelve a intentarlo.");
+        return false;
       }
     }
 
@@ -1443,7 +1445,7 @@
       }));
     }
 
-    function saveList() {
+    async function saveList() {
       const section = content[activeListKey];
       const rows = [...listEditor.querySelectorAll(".list-editor-row")];
       const nextItems = [];
@@ -1460,7 +1462,7 @@
       currentState.photos[activeListKey] = (currentState.photos[activeListKey] || []).slice(0, section.items.length);
       currentState.links[activeListKey] = nextLinks;
       persistState();
-      saveSharedState();
+      await saveSharedState();
       renderList(activeListKey);
       listEditor.hidden = true;
       editListButton.textContent = "Editar lista";
@@ -1468,7 +1470,7 @@
       window.history.replaceState({}, "", `#edit=${currentState.guideId}`);
     }
 
-    function stopListEditing() {
+    async function stopListEditing() {
       if (activeListKey === "hate") {
         currentState.ranking = Object.values(currentState.rankingTiers).flat();
         persistState();
@@ -1476,7 +1478,7 @@
         renderList("hate");
         window.history.replaceState({}, "", `#edit=${currentState.guideId}`);
       } else {
-        saveList();
+        await saveList();
       }
       listEditor.hidden = true;
       modalItems.hidden = false;
@@ -1695,9 +1697,9 @@
       if (closeModal) closeModal.focus();
     }
 
-    function hideModal() {
+    async function hideModal() {
       if (!listEditor.hidden) {
-        stopListEditing();
+        await stopListEditing();
       }
       modal.hidden = true;
     }
